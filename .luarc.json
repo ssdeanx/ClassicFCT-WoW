@@ -18,7 +18,6 @@
         "table",
         "tonumber",
         "tostring",
-        "spellid",
         "SCHOOL_MASK_PHYSICAL",
         "SCHOOL_MASK_HOLY",
         "SCHOOL_MASK_FIRE",

@@ -4,7 +4,7 @@ WoW Lua 5.1 addon for floating combat text. No build system, test runner, or CI.
 
 ## Supported clients
 
-Maintainer intent and interface mapping. Keep this list aligned with every `.toc` `## Interface` value. Runtime flavor checks currently use `WOW_PROJECT_ID` (`IsClassic`, `IsBCC`, `IsRetail`).
+Maintainer intent and interface mapping. Keep this list aligned with every `.toc` `## Interface` value (`ClassicFCT-Vanilla/TBC/Titan/Forever/Mainline.toc`; the Titan and Forever files were renamed from Wrath and Mists, and the Cata `.toc` was dropped). Runtime flavor checks live in `main.lua` / `config.lua` and use `WOW_PROJECT_ID` with numeric fallbacks: `IsClassic` (2), `IsBCC` (5), `IsRetail` (1), `IsTitan` (`WOW_PROJECT_WRATH_CLASSIC` or 11), `IsWoWForever` (`WOW_PROJECT_CAMELOT` = 18, or interface `16001`). WoW Forever is a Camelot project, not Mists.
 
 | Client | Interface |
 | :--- | :--- |
@@ -28,8 +28,9 @@ Maintainer intent and interface mapping. Keep this list aligned with every `.toc
 - Vanilla classic spell ids can be `0`; those are mapped to the spell name (`if (spellid == 0 and IsClassic) then spellid = spellname end`).
 - UI uses retail `Settings` when `Settings.RegisterAddOnCategory` exists, otherwise `InterfaceOptionsFrame`.
 - Color picker code supports both legacy and modern pickers; check `UsesNewColorPicker` / `UsesNewColorPicker` before changing that flow.
-- Retail/Midnight and WoW Forever restrict or remove `COMBAT_LOG_EVENT_UNFILTERED`; those paths need the `C_CombatText` / `COMBAT_TEXT_UPDATE` pipeline instead of current CLEU parsing. Verify exact payloads/secret-value behavior in the WoW UI source before implementing.
-- Modern retail damage values may be secret (`_G.issecretvalue`); guard numeric handling so restricted events are skipped instead of causing arithmetic/comparison errors.
+- `IsRestrictedCombat = IsRetail or IsWoWForever`. On those clients `COMBAT_LOG_EVENT_UNFILTERED` is restricted (`HasRestrictions=true`) and no public API exposes outgoing damage for arbitrary targets: `C_CombatText` only covers the active unit's (player/vehicle) incoming damage/heals, with secret returns and no source/dest GUID or spell id. Do not try to rebuild CLEU parsing from it.
+- Restricted-client behavior: CLEU is never registered or handled (`events` table plus early-return guard), `ADDON_LOADED` logs a one-time notice, `checkCvars` is skipped, and Blizzard's own combat text must never be suppressed while the addon cannot replace it (config.lua computes the same `IsRestrictedCombat` flag and hides the "Hide Blizzard Damage/Healing" checkboxes when their CVars are unavailable). Options, presets and previews still work.
+- Secret values: `IsSecretValue` in `main.lua` returns false when `_G.issecretvalue` is absent and pcall-wraps the comparison so a restricted boolean cannot error. Guards run at CLEU entry (event, source/dest GUID, flags), per branch before the `spellid == 0 and IsClassic` conversion (spellid/amount/school/crit/misstype), in `DamageEvent` / `MissEvent` / `HealingEvent`, and in `CacheEvent`; restricted events are skipped, never formatted.
 
 ## WoW API verification
 
@@ -42,12 +43,15 @@ git -C /home/sam/wow-ui-source diff <branch-a>..<branch-b> -- Interface/AddOns/
 ```
 Read `SKILL.md` in that repo for the branch/version/API matrix and API restrictions. Before relying on branch-specific APIs, check that branch's `Blizzard_APIDocumentationGenerated` files.
 
+- Offline checks: `luac -p main.lua config.lua` and `luacheck main.lua config.lua` (errors are regressions; warnings are pre-existing).
+- In-game matrix: record `/run print(WOW_PROJECT_ID, select(4, GetBuildInfo()))` on each supported client. Restricted clients should log the availability notice and show no ClassicFCT numbers; Vanilla/TBC/Titan should show normal combat text.
+
 ## Key architecture
 
 - `CFCT` is the addon table and is published as `_G[addonName]`.
-- `main.lua`: registers `COMBAT_LOG_EVENT_UNFILTERED`, `ADDON_LOADED`, `PLAYER_LOGOUT`, `PLAYER_ENTERING_WORLD`, `NAME_PLATE_UNIT_ADDED`, `NAME_PLATE_UNIT_REMOVED`, `UNIT_MAXHEALTH`; drives animation/cache processing from `OnUpdate`; handles CLEU via `DamageEvent` / `MissEvent` / `HealingEvent` -> `CacheEvent`.
+- `main.lua`: registers the `events` table (`COMBAT_LOG_EVENT_UNFILTERED`, `ADDON_LOADED`, `PLAYER_LOGOUT`, `PLAYER_ENTERING_WORLD`, `NAME_PLATE_UNIT_ADDED`, `NAME_PLATE_UNIT_REMOVED`, `UNIT_MAXHEALTH`) inside `pcall`, logging per-event failures instead of aborting; CLEU is left unregistered on restricted clients. Drives animation/cache processing from `OnUpdate`; handles CLEU via `DamageEvent` / `MissEvent` / `HealingEvent` -> `CacheEvent`.
 - `config.lua`: persistence (`CFCT.Config:OnLoad` / `OnSave`), defaults/migration, widget builders, slash-command entry (`/cfct`).
-- Test/debug helpers: `CFCT._testMode`, `CFCT:Test(n)`, `CFCT:Log`, `CFCT:DumpLog`.
+- Test/debug helpers: `CFCT._testMode`, `CFCT:Test(n)` (uses `UnitGUID("target")` when there are no nameplates, reads icons from `spellinfo.spellID`, and bounds the spell lookup to 50 attempts), `CFCT:Log`, `CFCT:DumpLog`.
 
 ## Persistence
 
@@ -57,9 +61,9 @@ Character-level: `ClassicFCTCharConfig`, `ClassicFCTCharVars`, `ClassicFCTCharTa
 
 ## "More numbers at once"
 
-- `Config.maxDisplayed` (UI: "Max Simultaneous Numbers") caps visible numbers; `0` means unlimited and values up to 200 are supported. When the cap is reached, the oldest number is removed so the newest stays visible.
+- `Config.maxDisplayed` (UI: "Max Simultaneous Numbers", slider 0-200) caps visible numbers; `0` is the default and means unlimited. When the cap is reached, the oldest number is removed so the newest stays visible.
 - Density can also be increased by reducing `preventOverlapSpacingX` / `preventOverlapSpacingY`, which control the anti-overlap layout grid.
-- Adapted collision behavior from ClassicNumbers can be evaluated for tighter packing, but preserve `recycleFontString` / init-field parity if adding per-frame collision state.
+- ClassicNumbers' per-frame `GetCollisionOffsets` / `collisionBounce` and per-target caps (`maxHitNumbersPerTarget` / `maxCritNumbersPerTarget`) were deliberately not ported: a separation pass would fight the existing `GRID` + spiral overflow + 3-pass overlap resolution, and the caps would reduce simultaneous numbers rather than increase them. Keep the `recycleFontString` / init-field parity warning if per-frame collision state is ever added.
 
 ## Conventions and gotchas
 

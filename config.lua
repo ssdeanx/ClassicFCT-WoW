@@ -16,12 +16,12 @@ local GetSpellInfo = (type(GetSpellInfo_old) == 'function') and function(id)
     }
 end or C_Spell.GetSpellInfo
 
-local IsRetail = (WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1))
-local IsClassic = (WOW_PROJECT_ID == (WOW_PROJECT_CLASSIC or 2))
-local IsBCC = (WOW_PROJECT_ID == (WOW_PROJECT_BURNING_CRUSADE_CLASSIC or 5))
-local IsTitan = (WOW_PROJECT_ID == ((WOW_PROJECT_WRATH_CLASSIC or 11)))
+-- Restricted-combat clients (Retail/Midnight, WoW Forever) cannot feed this addon:
+-- keep the UI from hiding Blizzard's own combat text while the addon cannot replace it.
 local _tocVersion = (type(GetBuildInfo) == "function") and select(4, GetBuildInfo()) or 0
-local IsWoWForever = (_tocVersion == 16001) or (WOW_PROJECT_ID == 19 and _tocVersion < 20000 and _tocVersion >= 16000)
+local IsRestrictedCombat = (WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1))
+    or (WOW_PROJECT_ID == (_G.WOW_PROJECT_CAMELOT or 18))
+    or (_tocVersion == 16001)
 local UsesNewSettingsInterface = (Settings and (type(Settings.RegisterAddOnCategory) == 'function'))
 local UsesNewColorPicker = OpacitySliderFrame == nil or ((type(OpacitySliderFrame.GetParent) == 'function') and OpacitySliderFrame:GetParent():GetName() ~= "ColorPickerFrame")
 local DefaultPresets = CFCT:GetDefaultPresets()
@@ -454,8 +454,6 @@ local TextStrataMenu = {
     }
 }
 
-
-
 local AnimationsMenu = {
     Func = function(self, dropdown)
         
@@ -477,7 +475,6 @@ local AnimationsMenu = {
         value = "Scroll"
     },
 }
-
 
 local FontStylesMenu = {
     Func = function(self, dropdown)
@@ -512,58 +509,57 @@ local FontStylesMenu = {
     }
 }
 
+-- Global strings are supplied by the client at runtime; index _G directly so the
+-- constants are not reported as undefined globals, and fall back to an English
+-- label when a client/locale does not define them.
+local function SchoolName(globalName, fallback)
+    return _G[globalName] or fallback
+end
 
 local SCHOOL_NAMES = {
     -- Single Schools
-    [Enum.Damageclass.MaskPhysical]	    = STRING_SCHOOL_PHYSICAL,
-    [Enum.Damageclass.MaskHoly]		    = STRING_SCHOOL_HOLY,
-    [Enum.Damageclass.MaskFire]		    = STRING_SCHOOL_FIRE,
-    [Enum.Damageclass.MaskNature]	    = STRING_SCHOOL_NATURE,
-    [Enum.Damageclass.MaskFrost]	    = STRING_SCHOOL_FROST,
-    [Enum.Damageclass.MaskShadow]	    = STRING_SCHOOL_SHADOW,
-    [Enum.Damageclass.MaskArcane]	    = STRING_SCHOOL_ARCANE,
+    [Enum.Damageclass.MaskPhysical]	    = SchoolName("STRING_SCHOOL_PHYSICAL", "Physical"),
+    [Enum.Damageclass.MaskHoly]		    = SchoolName("STRING_SCHOOL_HOLY", "Holy"),
+    [Enum.Damageclass.MaskFire]		    = SchoolName("STRING_SCHOOL_FIRE", "Fire"),
+    [Enum.Damageclass.MaskNature]	    = SchoolName("STRING_SCHOOL_NATURE", "Nature"),
+    [Enum.Damageclass.MaskFrost]	    = SchoolName("STRING_SCHOOL_FROST", "Frost"),
+    [Enum.Damageclass.MaskShadow]	    = SchoolName("STRING_SCHOOL_SHADOW", "Shadow"),
+    [Enum.Damageclass.MaskArcane]	    = SchoolName("STRING_SCHOOL_ARCANE", "Arcane"),
     -- Physical and a Magical
-    [Enum.Damageclass.MaskFlamestrike]	= STRING_SCHOOL_FLAMESTRIKE,
-    [Enum.Damageclass.MaskFroststrike]	= STRING_SCHOOL_FROSTSTRIKE,
-    [Enum.Damageclass.MaskSpellstrike]	= STRING_SCHOOL_SPELLSTRIKE,
-    [Enum.Damageclass.MaskStormstrike]	= STRING_SCHOOL_STORMSTRIKE,
-    [Enum.Damageclass.MaskShadowstrike]	= STRING_SCHOOL_SHADOWSTRIKE,
-    [Enum.Damageclass.MaskHolystrike]	= STRING_SCHOOL_HOLYSTRIKE,
+    [Enum.Damageclass.MaskFlamestrike]	= SchoolName("STRING_SCHOOL_FLAMESTRIKE", "Flamestrike"),
+    [Enum.Damageclass.MaskFroststrike]	= SchoolName("STRING_SCHOOL_FROSTSTRIKE", "Froststrike"),
+    [Enum.Damageclass.MaskSpellstrike]	= SchoolName("STRING_SCHOOL_SPELLSTRIKE", "Spellstrike"),
+    [Enum.Damageclass.MaskStormstrike]	= SchoolName("STRING_SCHOOL_STORMSTRIKE", "Stormstrike"),
+    [Enum.Damageclass.MaskShadowstrike]	= SchoolName("STRING_SCHOOL_SHADOWSTRIKE", "Shadowstrike"),
+    [Enum.Damageclass.MaskHolystrike]	= SchoolName("STRING_SCHOOL_HOLYSTRIKE", "Holystrike"),
     -- Two Magical Schools
-    [Enum.Damageclass.MaskFrostfire]	= STRING_SCHOOL_FROSTFIRE,
-    [Enum.Damageclass.MaskSpellfire]	= STRING_SCHOOL_SPELLFIRE,
-    [Enum.Damageclass.MaskFirestorm]	= STRING_SCHOOL_FIRESTORM,
-    [Enum.Damageclass.MaskShadowflame]	= STRING_SCHOOL_SHADOWFLAME,
-    [Enum.Damageclass.MaskHolyfire]		= STRING_SCHOOL_HOLYFIRE,
-    [Enum.Damageclass.MaskSpellfrost]	= STRING_SCHOOL_SPELLFROST,
-    [Enum.Damageclass.MaskFroststorm]	= STRING_SCHOOL_FROSTSTORM,
-    [Enum.Damageclass.MaskShadowfrost]	= STRING_SCHOOL_SHADOWFROST,
-    [Enum.Damageclass.MaskHolyfrost]	= STRING_SCHOOL_HOLYFROST,
-    [Enum.Damageclass.MaskSpellstorm]	= STRING_SCHOOL_SPELLSTORM,
-    [Enum.Damageclass.MaskSpellshadow]	= STRING_SCHOOL_SPELLSHADOW,
-    [Enum.Damageclass.MaskDivine]		= STRING_SCHOOL_DIVINE,
-    [Enum.Damageclass.MaskShadowstorm]	= STRING_SCHOOL_SHADOWSTORM,
-    [Enum.Damageclass.MaskHolystorm]	= STRING_SCHOOL_HOLYSTORM,
-    [Enum.Damageclass.MaskTwilight]	    = STRING_SCHOOL_SHADOWLIGHT,
+    [Enum.Damageclass.MaskFrostfire]	= SchoolName("STRING_SCHOOL_FROSTFIRE", "Frostfire"),
+    [Enum.Damageclass.MaskSpellfire]	= SchoolName("STRING_SCHOOL_SPELLFIRE", "Spellfire"),
+    [Enum.Damageclass.MaskFirestorm]	= SchoolName("STRING_SCHOOL_FIRESTORM", "Firestorm"),
+    [Enum.Damageclass.MaskShadowflame]	= SchoolName("STRING_SCHOOL_SHADOWFLAME", "Shadowflame"),
+    [Enum.Damageclass.MaskHolyfire]		= SchoolName("STRING_SCHOOL_HOLYFIRE", "Holyfire"),
+    [Enum.Damageclass.MaskSpellfrost]	= SchoolName("STRING_SCHOOL_SPELLFROST", "Spellfrost"),
+    [Enum.Damageclass.MaskFroststorm]	= SchoolName("STRING_SCHOOL_FROSTSTORM", "Froststorm"),
+    [Enum.Damageclass.MaskShadowfrost]	= SchoolName("STRING_SCHOOL_SHADOWFROST", "Shadowfrost"),
+    [Enum.Damageclass.MaskHolyfrost]	= SchoolName("STRING_SCHOOL_HOLYFROST", "Holyfrost"),
+    [Enum.Damageclass.MaskSpellstorm]	= SchoolName("STRING_SCHOOL_SPELLSTORM", "Spellstorm"),
+    [Enum.Damageclass.MaskSpellshadow]	= SchoolName("STRING_SCHOOL_SPELLSHADOW", "Spellshadow"),
+    [Enum.Damageclass.MaskDivine]		= SchoolName("STRING_SCHOOL_DIVINE", "Divine"),
+    [Enum.Damageclass.MaskShadowstorm]	= SchoolName("STRING_SCHOOL_SHADOWSTORM", "Shadowstorm"),
+    [Enum.Damageclass.MaskHolystorm]	= SchoolName("STRING_SCHOOL_HOLYSTORM", "Holystorm"),
+    [Enum.Damageclass.MaskTwilight]	    = SchoolName("STRING_SCHOOL_SHADOWLIGHT", "Twilight"),
     -- Three or more schools
-    [Enum.Damageclass.MaskElemental]	= STRING_SCHOOL_ELEMENTAL,
-    [Enum.Damageclass.MaskChromatic]    = STRING_SCHOOL_CHROMATIC,
-    [Enum.Damageclass.MaskMagical]      = STRING_SCHOOL_MAGIC,
-    [Enum.Damageclass.MaskChaos]        = STRING_SCHOOL_CHAOS
+    [Enum.Damageclass.MaskElemental]	= SchoolName("STRING_SCHOOL_ELEMENTAL", "Elemental"),
+    [Enum.Damageclass.MaskChromatic]    = SchoolName("STRING_SCHOOL_CHROMATIC", "Chromatic"),
+    [Enum.Damageclass.MaskMagical]      = SchoolName("STRING_SCHOOL_MAGIC", "Magical"),
+    [Enum.Damageclass.MaskChaos]        = SchoolName("STRING_SCHOOL_CHAOS", "Chaos")
 }
-
-
-
-
-
-
-
 
 function ShowColorPicker(_parentFrame, _r, _g, _b, _a, _changedCallback)
     --show color picker
     ColorPickerFrame:Hide()
     ColorPickerFrame:SetFrameStrata("FULLSCREEN_DIALOG")
-    
+
     if (_parentFrame) then
         ColorPickerFrame:SetFrameLevel(_parentFrame:GetFrameLevel() + 10)
     end
@@ -717,9 +713,7 @@ if LSM then
     LSM.RegisterCallback(CFCT, "LibSharedMedia_Registered", "UpdateUsedMedia")
 end
 
-
-
-local function CreateFontDropdown(self, label, tooltip, parent, point1, point2, x, y, defVal, ConfigPath)
+local function CreateFontDropdown(self, _label, _tooltip, parent, point1, point2, x, y, defVal, ConfigPath)
     local dropdown = CreateFrame('Frame', self:NewFrameID(), self, "UIDropDownMenuTemplate")
     self:AddFrame(dropdown)
     dropdown:SetPoint(point1, parent, point2, x, y)
@@ -727,14 +721,14 @@ local function CreateFontDropdown(self, label, tooltip, parent, point1, point2, 
     dropdown.middle = getglobal(dropdown:GetName() .. "Middle")
     dropdown.middle:SetWidth(150)
     dropdown.right = getglobal(dropdown:GetName() .. "Right")
-    local function itemOnClick(self)
-        SetValue(ConfigPath, self.value)
-        UIDropDownMenu_SetSelectedValue(dropdown, self.value)
+    local function itemOnClick(clicked)
+        SetValue(ConfigPath, clicked.value)
+        UIDropDownMenu_SetSelectedValue(dropdown, clicked.value)
     end
     dropdown.initialize = function(dd)
         local curValue = GetValue(ConfigPath)
         local info = UIDropDownMenu_CreateInfo()
-        for i,name in ipairs(fontList) do
+        for _,name in ipairs(fontList) do
             wipe(info)
             info.text = name
             info.value = fontPaths[name]
@@ -901,7 +895,6 @@ local function CreateColorOption(self, label, tooltip, parent, point1, point2, x
     return btn
 end
 
-
 local HEADER_TEXT = {
     auto = "Auto Hits",
     automiss = "Auto Misses",
@@ -945,11 +938,11 @@ local function CreatePowAnimationPanel(self, cat, anchor, point1, point2, x, y)
     UpdateTable(DefaultConfig[cat].Pow, AnimationDefaults.Pow, AnimationDefaults.Pow)
     local enabledCheckbox = f:CreateCheckbox("Enable Pow", "Enables/Disables this animation type", f, "TOPLEFT", "TOPLEFT", 170, -2, DefaultConfig[cat].Pow.enabled, "Config."..cat..".Pow.enabled")
     local c = f:CreateChildFrame(point1, point2, anchor, x, y, 612, 90)
-    
+
     local duration = c:CreateSlider("Duration", "Animation duration relative to global duration", f, "TOPLEFT", "TOPLEFT", 310, -12, 0.01, 1, 0.01, DefaultConfig[cat].Pow.duration, "Config."..cat..".Pow.duration")
     duration:SetFrameLevel(enabledCheckbox:GetFrameLevel()+1)
     local inOutRatio = c:CreateSlider("Duration Ratio", "Duration ratio between time spent in Start to Mid phase and time spent in Mid to End phase.", f, "TOPLEFT", "TOPLEFT", 460, -12, 0.01, 1, 0.01, DefaultConfig[cat].Pow.inOutRatio, "Config."..cat..".Pow.inOutRatio")
-    
+
     local initScale = c:CreateSlider("Start Scale", "Initial text scale", f, "TOPLEFT", "TOPLEFT", 160, -58, 0.1, 5, 0.01, DefaultConfig[cat].Pow.initScale, "Config."..cat..".Pow.initScale")
     local midScale = c:CreateSlider("Mid Scale", "Mid point text scale", f, "TOPLEFT", "TOPLEFT", 310, -58, 0.1, 5, 0.01, DefaultConfig[cat].Pow.midScale, "Config."..cat..".Pow.midScale")
     local endScale = c:CreateSlider("End Scale", "Final text scale", f, "TOPLEFT", "TOPLEFT", 460, -58, 0.1, 5, 0.01, DefaultConfig[cat].Pow.endScale, "Config."..cat..".Pow.endScale")
@@ -1053,7 +1046,7 @@ local function CreateScrollAnimationPanel(self, cat, anchor, point1, point2, x, 
     UpdateTable(DefaultConfig[cat].Scroll, AnimationDefaults.Scroll, AnimationDefaults.Scroll)
     local enabledCheckbox = f:CreateCheckbox("Enable Scroll", "Enables/Disables this animation type", f, "TOPLEFT", "TOPLEFT", 170, -2, DefaultConfig[cat].Scroll.enabled, "Config."..cat..".Scroll.enabled")
     local c = f:CreateChildFrame(point1, point2, anchor, x, y, 612, 90)
-    
+
     local dirDropDown = c:CreateDropDownMenu("Direction", "Scroll direction", f, "TOPLEFT", "TOPLEFT", 320-16, 0, ScrollDirectionsMenu, "Config."..cat..".Scroll.direction")
     dirDropDown.middle:SetWidth(120)
     local distance = c:CreateSlider("Distance", "Scroll distance", f, "TOPLEFT", "TOPLEFT", 320, -40, 1, floor(WorldFrame:GetWidth()), 1, DefaultConfig[cat].Scroll.distance, "Config."..cat..".Scroll.distance")
@@ -1067,32 +1060,33 @@ local function CreateScrollAnimationPanel(self, cat, anchor, point1, point2, x, 
     end)
     f.enabledCheckbox = enabledCheckbox
     return f
-end    
+end
+
 
 
 local function CreateCategoryPanel(self, cat, anchor, point1, point2, x, y)
     local f = self:CreateChildFrame(point1, point2, anchor, x, y, 612, 180)
     f:Show()
-    
-    local header = self:CreateHeader(HEADER_TEXT[cat], "GameFontNormalLarge", f, "TOPLEFT", "TOPLEFT", 4, -2)
+
+    self:CreateHeader(HEADER_TEXT[cat], "GameFontNormalLarge", f, "TOPLEFT", "TOPLEFT", 4, -2)
     local enabledCheckbox = self:CreateCheckbox("Enabled", "Enables/Disables this event type", f, "TOPLEFT", "TOPLEFT", 143, 0, DefaultConfig[cat].enabled, "Config."..cat..".enabled")
     enabledCheckbox.label:SetWidth(80)
-    enabledCheckbox:HookScript("OnShow", function(self)
-        if (self:GetChecked()) then f:Show() else f:Hide() end
+    enabledCheckbox:HookScript("OnShow", function(checkbox)
+        if (checkbox:GetChecked()) then f:Show() else f:Hide() end
     end)
-    enabledCheckbox:HookScript("OnClick", function(self)
-        if (self:GetChecked()) then f:Show() else f:Hide() end
+    enabledCheckbox:HookScript("OnClick", function(checkbox)
+        if (checkbox:GetChecked()) then f:Show() else f:Hide() end
     end)
     local showIconsCheckbox = f:CreateCheckbox("Show Spell Icons", "Enables/Disables showing spell icons next to damage text", f, "TOPLEFT", "TOPLEFT", 250, 0, DefaultConfig[cat].showIcons, "Config."..cat..".showIcons")
     showIconsCheckbox:SetFrameLevel(enabledCheckbox:GetFrameLevel() + 1)
 
-    local fontFaceDropDown = f:CreateFontDropdown("Font Face", "Font face used", f, "TOPLEFT", "TOPLEFT", -16, -28, DefaultConfig[cat].fontPath, "Config."..cat..".fontPath")
-    local fontStyleDropDown = f:CreateDropDownMenu("Font Style", "Font style used", f, "TOPLEFT", "TOPLEFT", 154, -28, FontStylesMenu, "Config."..cat..".fontStyle")
+    f:CreateFontDropdown("Font Face", "Font face used", f, "TOPLEFT", "TOPLEFT", -16, -28, DefaultConfig[cat].fontPath, "Config."..cat..".fontPath")
+    f:CreateDropDownMenu("Font Style", "Font style used", f, "TOPLEFT", "TOPLEFT", 154, -28, FontStylesMenu, "Config."..cat..".fontStyle")
     local fontSizeSlider = f:CreateSlider("Font Size", "Font Size", f, "TOPLEFT", "TOPLEFT", 170+180, -28, 10, 128, 1, DefaultConfig[cat].fontSize, "Config."..cat..".fontSize")
     fontSizeSlider:SetWidth(150)
-    local colorWidget = f:CreateColorOption("Text Color", "Custom text color for this event", f, "TOPLEFT", "TOPLEFT", 170+180+160, -30, DefaultConfig[cat].fontColor, "Config."..cat..".fontColor")
+    f:CreateColorOption("Text Color", "Custom text color for this event", f, "TOPLEFT", "TOPLEFT", 170+180+160, -30, DefaultConfig[cat].fontColor, "Config."..cat..".fontColor")
     if (cat:find("heal") == nil) then
-        local clrDmgTypeCheckbox = f:CreateCheckbox("Color By Type", "Enables/Disables coloring damage text based on its type (alpha still taken from the text color below)", f, "TOPLEFT", "TOPLEFT", 480, 0, DefaultConfig[cat].colorByType, "Config."..cat..".colorByType")
+        f:CreateCheckbox("Color By Type", "Enables/Disables coloring damage text based on its type (alpha still taken from the text color below)", f, "TOPLEFT", "TOPLEFT", 480, 0, DefaultConfig[cat].colorByType, "Config."..cat..".colorByType")
     end
     local animPanel = {}
     animPanel.Pow = CreatePowAnimationPanel(f, cat, f, "TOPLEFT", "TOPLEFT", 0, -70)
@@ -1105,28 +1099,28 @@ local function CreateCategoryPanel(self, cat, anchor, point1, point2, x, y)
 
     local function updateStatus()
         animStatus = ""
-        for i,a in ipairs(AnimationsMenu) do
+        for _,a in ipairs(AnimationsMenu) do
             local k = a.text
             animStatus = animStatus..(CFCT.Config[cat][a.value].enabled and "\n|cff00ff00"..k or "\n|cffff0000"..k).."|r"
         end
         animStatusHeader:SetText("Animation Status:"..animStatus)
     end
 
-    for k,v in pairs(animPanel) do
-        v.enabledCheckbox:HookScript("OnClick", function(self)
+    for _,v in pairs(animPanel) do
+        v.enabledCheckbox:HookScript("OnClick", function()
             updateStatus()
         end)
     end
-    
+
     local function show(val)
         for k,v in pairs(animPanel) do
             if (k == val) then v:Show() else v:Hide() end
         end
     end
 
-    local animHeader = f:CreateHeader("Animation Settings", "GameFontHighlightSmall", f, "TOPLEFT", "TOPLEFT", 4, -60)
+    f:CreateHeader("Animation Settings", "GameFontHighlightSmall", f, "TOPLEFT", "TOPLEFT", 4, -60)
 
-    local animDropDown = f:CreateDropDownMenu("Animations", "Animations", f, "TOPLEFT", "TOPLEFT", -16, -70, AnimationsMenu, function(self, e, value)
+    local animDropDown = f:CreateDropDownMenu("Animations", "Animations", f, "TOPLEFT", "TOPLEFT", -16, -70, AnimationsMenu, function(_, e, value)
         if (e == "Get") then
             return value
         elseif (e == "Set") then
@@ -1134,8 +1128,8 @@ local function CreateCategoryPanel(self, cat, anchor, point1, point2, x, y)
         end
         updateStatus()
     end)
-    animDropDown:HookScript("OnShow", function(self)
-        show(self.curValue)
+    animDropDown:HookScript("OnShow", function(dropdown)
+        show(dropdown.curValue)
         updateStatus()
     end)
 
@@ -1200,14 +1194,14 @@ local ScrollDnBtnOffsetX = UsesNewSettingsInterface and -15 or -6
 local ScrollDnBtnOffsetY = UsesNewSettingsInterface and -1 or 2
 local function CreateConfigPanel(name, parent, height)
     local Container = CreateFrame('frame', "ClassicFCTConfigPanel_"..gsub(name, " ", ""), UIParent)
-    
+
     Container.name = name
     Container.parent = parent
     Container.CategoryID = name
     Container.refresh = Refresh
-	Container.okay = function(self) end
-	Container.cancel = function(self) end
-    
+	Container.okay = function() end
+	Container.cancel = function() end
+
     local sf = CreateFrame('ScrollFrame', Container:GetName().."_ScrollFrame", Container, "UIPanelScrollFrameTemplate")
     local sfname = sf:GetName()
     sf.scrollbar = getglobal(sfname.."ScrollBar")
@@ -1216,43 +1210,42 @@ local function CreateConfigPanel(name, parent, height)
 
     sf.scrollupbutton:ClearAllPoints();
     sf.scrollupbutton:SetPoint("TOPLEFT", sf, "TOPRIGHT", ScrollUpBtnOffsetX, ScrollUpBtnOffsetY);
-    
+
     sf.scrolldownbutton:ClearAllPoints();
     sf.scrolldownbutton:SetPoint("BOTTOMLEFT", sf, "BOTTOMRIGHT", ScrollDnBtnOffsetX, ScrollDnBtnOffsetY);
-    
+
     sf.scrollbar:ClearAllPoints();
     sf.scrollbar:SetPoint("TOP", sf.scrollupbutton, "BOTTOM", 0, -2);
     sf.scrollbar:SetPoint("BOTTOM", sf.scrolldownbutton, "TOP", 0, 2);
-    
+
     if (UsesNewSettingsInterface) then
-        Container.OnCommit = function(self)  end
-        Container.OnDefault = function(self)  end
-        Container.OnRefresh = function(self) Refresh(Container) end
-        
-        local Category, Layout
+        Container.OnCommit = function()  end
+        Container.OnDefault = function()  end
+        Container.OnRefresh = function() Refresh(Container) end
+
+        local Category
         if (parent == nil) then
-            Category, Layout = Settings.RegisterCanvasLayoutCategory(Container, name)
+            Category = Settings.RegisterCanvasLayoutCategory(Container, name)
             Settings.RegisterAddOnCategory(Category)
         else
-            Category, Layout = Settings.RegisterCanvasLayoutSubcategory(Settings.GetCategory(parent), Container, name)
+            Category = Settings.RegisterCanvasLayoutSubcategory(Settings.GetCategory(parent), Container, name)
         end
         Container.CategoryID = Category:GetID()
     else
         InterfaceOptions_AddCategory(Container)
     end
-    
-        
+
     CFCT.ConfigPanels[#CFCT.ConfigPanels + 1] = Container
     -- Container:HookScript("OnShow")
     Container:SetAllPoints()
     Container:Hide()
 
     local p = CreateFrame("Frame", Container:GetName().."_ScrollChild")
-    p.refresh = function(self) Container:refresh() end 
+    p.refresh = function() Container:refresh() end
     p.widgets = {}
     p.widgetCount = 0
-    p.CreateSubPanel = function(self, name, height)
-        return CreateConfigPanel(name, Container.CategoryID, height)
+    p.CreateSubPanel = function(_, subName, subHeight)
+        return CreateConfigPanel(subName, Container.CategoryID, subHeight)
     end
     p.CreateChildFrame = CreateChildFrame
     p.CreateCategoryPanel = CreateCategoryPanel
@@ -1375,19 +1368,10 @@ presetDropDown:HookScript("OnShow", function(self)
     end
 end)
 
-
-
-
-
-
-
-
-
-
 local headerGeneralSettings = ConfigPanel:CreateHeader("General Settings", "GameFontNormalLarge", headerPresets, "TOPLEFT", "BOTTOMLEFT", 0, -32)
 
 local animDurationSlider = ConfigPanel:CreateSlider("Animation Duration", "Animation length in seconds", headerGeneralSettings, "TOPLEFT", "BOTTOMLEFT", 20, -24, 0.1, 5.0, 0.1, DefaultConfig.animDuration, "Config.animDuration")
-local maxDisplayedSlider = ConfigPanel:CreateSlider("Max Simultaneous Numbers", "Maximum combat numbers visible at once. 0 = unlimited (current behavior). When the limit is reached the oldest number is removed so the newest stays visible.", animDurationSlider, "LEFT", "RIGHT", 16, 0, 0, 200, 1, DefaultConfig.maxDisplayed, "Config.maxDisplayed")
+ConfigPanel:CreateSlider("Max Simultaneous Numbers", "Maximum combat numbers visible at once. 0 = unlimited (current behavior). When the limit is reached the oldest number is removed so the newest stays visible.", animDurationSlider, "LEFT", "RIGHT", 16, 0, 0, 200, 1, DefaultConfig.maxDisplayed, "Config.maxDisplayed")
 local textPosOptionsHeader = ConfigPanel:CreateHeader("Text Position Options", "GameFontNormalLarge", headerGeneralSettings, "TOPLEFT", "BOTTOMLEFT", 0, -64)
 
 local attachModeHeader = ConfigPanel:CreateHeader("Attach Text To", "GameFontHighlightSmall", textPosOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 20, -16)
@@ -1397,34 +1381,34 @@ attachModeDropDown.middle:SetWidth(110)
 local fallbackCheckbox = ConfigPanel:CreateCheckbox("Attachment Fallback", "When a nameplate isnt available, the text will temporarily attach to the screen center instead", attachModeDropDown.right, "LEFT", "RIGHT", -10, 0, DefaultConfig.attachModeFallback, "Config.attachModeFallback")
 local overlapCheckbox = ConfigPanel:CreateCheckbox("Prevent Text Overlap", "Prevents damage text frames from overlapping each other", fallbackCheckbox, "LEFT", "RIGHT", 132, 0, DefaultConfig.preventOverlap, "Config.preventOverlap")
 
-local dontOverlapNameplates = ConfigPanel:CreateCheckbox("Nameplates In Front", "Show text behind the nameplates", fallbackCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, 0, DefaultConfig.dontOverlapNameplates, "Config.dontOverlapNameplates")
-local inheritNameplates = ConfigPanel:CreateCheckbox("Inherit From Nameplates", "Text inherits some atributes from nameplates, like visibility and scale", overlapCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, 0, DefaultConfig.inheritNameplates, "Config.inheritNameplates")
+ConfigPanel:CreateCheckbox("Nameplates In Front", "Show text behind the nameplates", fallbackCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, 0, DefaultConfig.dontOverlapNameplates, "Config.dontOverlapNameplates")
+ConfigPanel:CreateCheckbox("Inherit From Nameplates", "Text inherits some atributes from nameplates, like visibility and scale", overlapCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, 0, DefaultConfig.inheritNameplates, "Config.inheritNameplates")
 
 
 local areaSliderX = ConfigPanel:CreateSlider("Screen Center Text X Offset", "Horizontal offset of animation area", attachModeHeader, "TOPLEFT", "BOTTOMLEFT", 0, -48, -700, 700, 1, DefaultConfig.areaX, "Config.areaX")
-local areaSliderY = ConfigPanel:CreateSlider("Screen Center Text Y Offset", "Vertical offset of animation area", areaSliderX, "LEFT", "RIGHT", 16, 0, -400, 400, 1, DefaultConfig.areaY, "Config.areaY")
+ConfigPanel:CreateSlider("Screen Center Text Y Offset", "Vertical offset of animation area", areaSliderX, "LEFT", "RIGHT", 16, 0, -400, 400, 1, DefaultConfig.areaY, "Config.areaY")
 local areaSliderNX = ConfigPanel:CreateSlider("Nameplate Text X Offset", "Horizontal offset of animation area", areaSliderX, "TOPLEFT", "BOTTOMLEFT", 0, -28, -400, 400, 1, DefaultConfig.areaNX, "Config.areaNX")
-local areaSliderNY = ConfigPanel:CreateSlider("Nameplate Text Y Offset", "Vertical offset of animation area", areaSliderNX, "LEFT", "RIGHT", 16, 0, -400, 400, 1, DefaultConfig.areaNY, "Config.areaNY")
+ConfigPanel:CreateSlider("Nameplate Text Y Offset", "Vertical offset of animation area", areaSliderNX, "LEFT", "RIGHT", 16, 0, -400, 400, 1, DefaultConfig.areaNY, "Config.areaNY")
 local spacingSliderX = ConfigPanel:CreateSlider("Anti-Overlap Horizontal Spacing", "Horizontal spacing between text", areaSliderNX, "TOPLEFT", "BOTTOMLEFT", 0, -28, 0, 200, 1, DefaultConfig.preventOverlapSpacingX, "Config.preventOverlapSpacingX")
-local spacingSliderY = ConfigPanel:CreateSlider("Anti-Overlap Vertical Spacing", "Vertical spacing between text", spacingSliderX, "LEFT", "RIGHT", 16, 0, 0, 200, 1, DefaultConfig.preventOverlapSpacingY, "Config.preventOverlapSpacingY")
+ConfigPanel:CreateSlider("Anti-Overlap Vertical Spacing", "Vertical spacing between text", spacingSliderX, "LEFT", "RIGHT", 16, 0, 0, 200, 1, DefaultConfig.preventOverlapSpacingY, "Config.preventOverlapSpacingY")
 
 
 -- Spell Icon Options - Credit: https://github.com/akbyrd
 local spellIconOptionsHeader = ConfigPanel:CreateHeader("Spell Icon Options", "GameFontNormalLarge", textPosOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 0, -200)
 local iconOffsetSliderX = ConfigPanel:CreateSlider("X Offset", "Horizontal offset of spell icon", spellIconOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 20, -24, -20, 20, 1, DefaultConfig.spellIconOffsetX, "Config.spellIconOffsetX")
-local iconOffsetSliderY = ConfigPanel:CreateSlider("Y Offset", "Vertical offset of spell icon", iconOffsetSliderX, "LEFT", "RIGHT", 16, 0, -20, 20, 1, DefaultConfig.spellIconOffsetY, "Config.spellIconOffsetY")
+ConfigPanel:CreateSlider("Y Offset", "Vertical offset of spell icon", iconOffsetSliderX, "LEFT", "RIGHT", 16, 0, -20, 20, 1, DefaultConfig.spellIconOffsetY, "Config.spellIconOffsetY")
 local iconZoomSlider = ConfigPanel:CreateSlider("Zoom", "Zoom in on the icon and trim to edge to give a more square appearance", iconOffsetSliderX, "TOPLEFT", "BOTTOMLEFT", 0, -28, 1, 2, 0.01, DefaultConfig.spellIconZoom, "Config.spellIconZoom")
-local iconAspectRatioSlider = ConfigPanel:CreateSlider("Aspect Ratio", "Aspect ratio of spell icon", iconZoomSlider, "LEFT", "RIGHT", 16, 0, 1, 2, 0.01, DefaultConfig.spellIconAspectRatio, "Config.spellIconAspectRatio")
+ConfigPanel:CreateSlider("Aspect Ratio", "Aspect ratio of spell icon", iconZoomSlider, "LEFT", "RIGHT", 16, 0, 1, 2, 0.01, DefaultConfig.spellIconAspectRatio, "Config.spellIconAspectRatio")
 
 
 
 local textFormatOptionsHeader = ConfigPanel:CreateHeader("Number Formatting Options", "GameFontNormalLarge", spellIconOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 0, -108)
 local abbrevCheckbox = ConfigPanel:CreateCheckbox("Abbreviate Large Numbers", "Abbreviate large numbers (ex.1K)", textFormatOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 20, -8, DefaultConfig.abbreviateNumbers, "Config.abbreviateNumbers")
-local kiloSepCheckbox = ConfigPanel:CreateCheckbox("Add Thousands Separator", "Add thousands separator (ex.100,000,000)", abbrevCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, 0, DefaultConfig.kiloSeparator, "Config.kiloSeparator")
+ConfigPanel:CreateCheckbox("Add Thousands Separator", "Add thousands separator (ex.100,000,000)", abbrevCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, 0, DefaultConfig.kiloSeparator, "Config.kiloSeparator")
 
 local filteringOptionsHeader = ConfigPanel:CreateHeader("Filtering Options", "GameFontNormalLarge", textFormatOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 0, -64)
 local absoluteFilterCheckbox = ConfigPanel:CreateCheckbox("Hide Below Absolute Threshold", "Hide numbers smaller than an absolute value", filteringOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 20, -8, DefaultConfig.filterAbsoluteEnabled, "Config.filterAbsoluteEnabled")
-local absoluteThresholdSlider = ConfigPanel:CreateSlider("Absolute Threshold", "Absolute Value", absoluteFilterCheckbox, "LEFT", "RIGHT", 256, 0, 0, 10000, 1, DefaultConfig.filterAbsoluteThreshold, "Config.filterAbsoluteThreshold")
+ConfigPanel:CreateSlider("Absolute Threshold", "Absolute Value", absoluteFilterCheckbox, "LEFT", "RIGHT", 256, 0, 0, 10000, 1, DefaultConfig.filterAbsoluteThreshold, "Config.filterAbsoluteThreshold")
 local relativeFilterCheckbox = ConfigPanel:CreateCheckbox("Hide Below Relative Threshold", "Hide numbers smaller than a percentage of player health", absoluteFilterCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, -20, DefaultConfig.filterRelativeEnabled, "Config.filterRelativeEnabled")
 local relativeThresholdSlider = ConfigPanel:CreateSlider("% of Max Player Health", "Percentage of Max Player Health", relativeFilterCheckbox, "LEFT", "RIGHT", 256, 0, 0, 100, 0.1, DefaultConfig.filterRelativeThreshold, "Config.filterRelativeThreshold")
 local relativeThresholdTimer = 0
@@ -1447,7 +1431,7 @@ averageThresholdSlider:HookScript("OnUpdate", function(self)
         averageThresholdTimer = now
     end
 end)
-local filterMissesCheckbox = ConfigPanel:CreateCheckbox("Hide Misses", "Hides Absorb, Block, Miss, Parry, Dodge, Deflect, Evade, Immune, Reflect and Resist.", averageFilterCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, -20, DefaultConfig.filterMissesEnabled, "Config.filterMissesEnabled")
+ConfigPanel:CreateCheckbox("Hide Misses", "Hides Absorb, Block, Miss, Parry, Dodge, Deflect, Evade, Immune, Reflect and Resist.", averageFilterCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, -20, DefaultConfig.filterMissesEnabled, "Config.filterMissesEnabled")
 
 local filteringBlacklistDropdown
 local filteringBlacklistCheckbox
@@ -1495,13 +1479,13 @@ filteringBlacklistDropdown:HookScript("OnShow", function(self)
             end
         end
     end
-    if (self.curValue == nil) then 
+    if (self.curValue == nil) then
         for k,v in pairs(spellIdTable) do
             self.curValue = k
             break
         end
     end
-    if (self.curValue == nil) then 
+    if (self.curValue == nil) then
         for k,v in pairs(CFCT.spellIdCache) do
             self.curValue = k
             break
@@ -1529,7 +1513,7 @@ filteringBlacklistCheckbox = ConfigPanel:CreateCheckbox("Disable By SpellId", "S
     if (e == "Get") then
         local spellid = filteringBlacklistDropdown.curValue
         if spellid then
-            spellval = spellIdTable[spellid]
+            local spellval = spellIdTable[spellid]
             if spellval then
                 return spellval
             end
@@ -1549,9 +1533,8 @@ filteringBlacklistCheckbox = ConfigPanel:CreateCheckbox("Disable By SpellId", "S
     end
 end)
 
-
 local sortingOptionsHeader = ConfigPanel:CreateHeader("Sorting Options", "GameFontNormalLarge", filteringOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 0, -200)
-local sortByDamageCheckbox = ConfigPanel:CreateCheckbox("Sort By Damage/Healing in Descending Order", "Sort events by amount", sortingOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 20, -8, DefaultConfig.sortByDamage, "Config.sortByDamage")
+ConfigPanel:CreateCheckbox("Sort By Damage/Healing in Descending Order", "Sort events by amount", sortingOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 20, -8, DefaultConfig.sortByDamage, "Config.sortByDamage")
 
 local merginOptionsHeader = ConfigPanel:CreateHeader("Merging Options", "GameFontNormalLarge", sortingOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 0, -40)
 local mergingEnabledCheckbox = ConfigPanel:CreateCheckbox("Merge Events", "Combine damage/healings events with the same spellid into one event", merginOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 20, -8, DefaultConfig.mergeEvents, "Config.mergeEvents")
@@ -1560,7 +1543,7 @@ local mergingIntervalOverrideDropdown
 local mergingOverrideIntervalSlider
 local mergingOverrideIntervalResetButton
 local MergeIntervalOverrideMenu = {{}}
-local mergingIntervalSlider = ConfigPanel:CreateSlider("Global Merge Interval", "Max time interval between events for a merge to happen (in seconds)", mergingEnabledCheckbox, "LEFT", "RIGHT", 256, 0, 0.01, 5, 0.01, DefaultConfig.mergeEventsInterval, function(self, e, value)
+local mergingIntervalSlider = ConfigPanel:CreateSlider("Global Merge Interval", "Max time interval between events for a merge to happen (in seconds)", mergingEnabledCheckbox, "LEFT", "RIGHT", 256, 0, 0.01, 5, 0.01, DefaultConfig.mergeEventsInterval, function(_, e, value)
     if (e == "Get") then
         return CFCT.Config.mergeEventsInterval == nil and value or CFCT.Config.mergeEventsInterval
     elseif (e == "Set") then
@@ -1658,7 +1641,7 @@ mergingOverrideIntervalSlider = ConfigPanel:CreateSlider("Override Merge Interva
     if (e == "Get") then
         local spellid = mergingIntervalOverrideDropdown.curValue
         if spellid then
-            spellval = spellIdTable[spellid]
+            local spellval = spellIdTable[spellid]
             if spellval then
                 return spellval
             end
@@ -1692,7 +1675,7 @@ local mergingMissesCheckbox = ConfigPanel:CreateCheckbox("Separate Misses", "Don
 local mergingByGuidCheckbox = ConfigPanel:CreateCheckbox("Separate By Target", "Dont merge damage done to different targets", mergingMissesCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, 0, DefaultConfig.mergeEventsByGuid, "Config.mergeEventsByGuid")
 local mergingByIDCheckbox = ConfigPanel:CreateCheckbox("Separate By Spell ID", "Dont merge damage with different spellids", mergingByGuidCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, 0, DefaultConfig.mergeEventsBySpellID, "Config.mergeEventsBySpellID")
 local mergingByIconCheckbox = ConfigPanel:CreateCheckbox("Separate By Spell Icon", "Dont merge damage with different icons", mergingByIDCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, 0, DefaultConfig.mergeEventsBySpellIcon, "Config.mergeEventsBySpellIcon")
-local mergingByTypeCheckbox = ConfigPanel:CreateCheckbox("Separate By Damage Type", "Dont merge damage of different types", mergingByIconCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, 0, DefaultConfig.mergeEventsBySchool, "Config.mergeEventsBySchool")
+ConfigPanel:CreateCheckbox("Separate By Damage Type", "Dont merge damage of different types", mergingByIconCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, 0, DefaultConfig.mergeEventsBySchool, "Config.mergeEventsBySchool")
 
 -- damage type colors
 local colorTableHeader = ConfigPanel:CreateHeader("Damage Type Colors", "GameFontNormalLarge", merginOptionsHeader, "TOPLEFT", "TOPLEFT", 0, -220)

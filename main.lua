@@ -1,15 +1,25 @@
 local addonName, CFCT = ...
 _G[addonName] = CFCT
+-- Client flavor detection.
+-- WOW_PROJECT_CAMELOT (18) is WoW Forever; origin/forever ships interface 16001 and has no
+-- FrameXML constants file of its own (Blizzard_ProjectConstants/Camelot/ProjectConstants.lua).
+local WOW_PROJECT_CAMELOT = _G.WOW_PROJECT_CAMELOT or 18
 local IsClassic = (WOW_PROJECT_ID == (WOW_PROJECT_CLASSIC or 2))
 local IsBCC = (WOW_PROJECT_ID == (WOW_PROJECT_BURNING_CRUSADE_CLASSIC or 5))
 local IsRetail = (WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1))
 local _tocVersion = (type(GetBuildInfo) == "function") and select(4, GetBuildInfo()) or 0
 local IsTitan = (WOW_PROJECT_ID == (WOW_PROJECT_WRATH_CLASSIC or 11))
-local IsWoWForever = (_tocVersion == 16001) or (WOW_PROJECT_ID == 19 and _tocVersion < 20000 and _tocVersion >= 16000)
+local IsWoWForever = (WOW_PROJECT_ID == WOW_PROJECT_CAMELOT) or (_tocVersion == 16001)
+-- Combat is restricted on Retail/Midnight and WoW Forever: COMBAT_LOG_EVENT_UNFILTERED is
+-- unavailable to tainted addons and no public API exposes outgoing damage for arbitrary targets.
 local IsRestrictedCombat = IsRetail or IsWoWForever
 local issecretvalue = _G.issecretvalue
 local function IsSecretValue(v)
-    return type(issecretvalue) == "function" and issecretvalue(v) == true
+    if (type(issecretvalue) ~= "function") then return false end
+    -- Guard the comparison itself: if issecretvalue returns a restricted boolean, `== true`
+    -- would otherwise raise on the exact input this helper exists to detect.
+    local ok, res = pcall(function() return issecretvalue(v) == true end)
+    return (ok and res) and true or false
 end
 local tinsert, tremove, tsort, format, strlen, strsub, gsub, floor, sin, cos, asin, acos, random, select, pairs, ipairs, unpack, bitband = table.insert, table.remove, table.sort, string.format, string.len, string.sub, string.gsub, math.floor, math.sin, math.cos, math.asin, math.acos, math.random, select, pairs, ipairs, unpack, bit.band
 local InCombatLockdown = InCombatLockdown
@@ -691,6 +701,7 @@ local function SpellIconText(spell) -- spellid or spellname
     if (tx == nil) then
         local info = (type(GetSpellInfo) == "function") and GetSpellInfo(spell) or nil
         tx = (type(info) == "table") and info.iconID or false
+        iconCache[spell] = tx -- cache negative lookups too
     end
     if tx then
         iconCache[spell] = tx
@@ -823,7 +834,7 @@ local function CacheEvent(guid, event, amount, text, spellid, spellicon, periodi
         if e[1] == true then id = id .. tostring(e[2]) end
     end
     -- print(id)
-    local mergeTime = fctConfig.mergeEventsIntervalOverrides[spellid] or fctConfig.mergeEventsInterval
+    local mergeTime = fctConfig.mergeEventsIntervalOverrides[spellid] or fctConfig.mergeEventsInterval or 0.1
     local now = GetTime()
     local record = eventCache[id] or {
         events = {},
@@ -849,6 +860,7 @@ local function CacheEvent(guid, event, amount, text, spellid, spellicon, periodi
     elseif fctConfig.mergeEventsIntervalMode == "last" then
         record.expiry = now + mergeTime
     end
+    record.expiry = record.expiry or (now + mergeTime)
     eventCache[id] = record
 end
 
@@ -905,9 +917,11 @@ function CFCT:Test(n)
     local it = (numplates > 0) and (n*numplates) or n
     for i = 1, it do
         local spellinfo
+        local attempts = 0
         repeat
             spellinfo = GetSpellInfo(random(1,32767))
-        until (spellinfo and spellinfo.iconID)
+            attempts = attempts + 1
+        until (spellinfo and spellinfo.iconID) or attempts >= 50
 
         local school = random(1,128)
         local pet = (random(1,3) == 1)
@@ -917,10 +931,8 @@ function CFCT:Test(n)
         local text = miss and "Miss" or nil
         local periodic = (random(1,3) == 1) and event == "spell"
         local amount = crit and 2674 or miss and 0 or 1337
-        if crit and miss then
-            print(amount, crit, miss)
-        end
         local guid = (numplates > 0) and UnitGUID(nameplates[random(1,numplates)].UnitFrame.unit) or UnitGUID("target")
+        local spellid = (spellinfo and spellinfo.spellID) or nil
         local spellicon = spellid and SpellIconText(spellid) or ""
         DispatchText(guid, event, text, amount, spellid, spellicon, periodic, crit, miss, pet, school)
     end
@@ -931,6 +943,8 @@ end
 local CVAR_CHECK_INTERVAL = 5
 local cvarTimer = 0
 local function checkCvars()
+    -- Restricted clients must not hide Blizzard's combat text: this addon cannot replace it.
+    if IsRestrictedCombat then return end
     if (GetCVarDefault("floatingCombatTextCombatDamage")) then
         local varHideDamage = CFCT.hideBlizz and "0" or "1"
         local cvarHideDamage = GetCVar("floatingCombatTextCombatDamage")
@@ -967,7 +981,12 @@ local events = {
     NAME_PLATE_UNIT_REMOVED = true
 }
 for e, enabled in pairs(events) do
-    if enabled then f:RegisterEvent(e) end
+    if enabled then
+        local ok, err = pcall(f.RegisterEvent, f, e)
+        if not ok then
+            CFCT:Log("Could not register event "..tostring(e)..": "..tostring(err))
+        end
+    end
 end
 f:SetScript("OnEvent", function(self, event, ...) self[event](self, ...) end)
 
@@ -1053,6 +1072,11 @@ Recent changes:
             end)
         end
         CFCT.lastVersion = version
+        if IsRestrictedCombat then
+            C_Timer.After(7, function()
+                CFCT:Log("Combat text is unavailable on this client: the modern combat log is restricted and no public API exposes outgoing damage. Options, presets and previews still work.")
+            end)
+        end
     end
 end
 
@@ -1164,7 +1188,7 @@ function f:COMBAT_LOG_EVENT_UNFILTERED()
     if CFCT.enabled == false then return end
     if IsRestrictedCombat then return end
     local timestamp, cleuEvent, hideCaster, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags, arg12, arg13, arg14, arg15, arg16, arg17, arg18, arg19, arg20, arg21, arg22, arg23, arg24, arg25 = CombatLogGetCurrentEventInfo()
-    if IsSecretValue(sourceGUID) or IsSecretValue(destGUID) or IsSecretValue(sourceFlags) or IsSecretValue(destFlags) then return end
+    if IsSecretValue(cleuEvent) or IsSecretValue(sourceGUID) or IsSecretValue(destGUID) or IsSecretValue(sourceFlags) or IsSecretValue(destFlags) then return end
     local playerEvent, petEvent = (playerGUID == sourceGUID), false
     if not playerEvent then petEvent = (bitband(sourceFlags, COMBATLOG_OBJECT_TYPE_GUARDIAN) > 0 or bitband(sourceFlags, COMBATLOG_OBJECT_TYPE_PET) > 0) and (bitband(sourceFlags, COMBATLOG_OBJECT_AFFILIATION_MINE) > 0) end
     if not (playerEvent or petEvent) then return end
@@ -1178,6 +1202,7 @@ function f:COMBAT_LOG_EVENT_UNFILTERED()
         else --its a SPELL event
             local periodic = cleuEvent:find("SPELL_PERIODIC", 1, true)
             local spellid,spellname,school1,amount,overkill,school2,resist,block,absorb,crit,glancing,crushing,offhand = arg12,arg13,arg14,arg15,arg16,arg17,arg18,arg19,arg20,arg21,arg22,arg23,arg24
+            if IsSecretValue(spellid) or IsSecretValue(amount) or IsSecretValue(school1) or IsSecretValue(crit) then return end
             if (spellid == 0 and IsClassic) then spellid = spellname end
             self:DamageEvent(guid, spellid, amount, periodic, crit, petEvent, school1)
         end
@@ -1188,6 +1213,7 @@ function f:COMBAT_LOG_EVENT_UNFILTERED()
         else --its a SPELL event
             local periodic = cleuEvent:find("SPELL_PERIODIC", 1, true)
             local spellid,spellname,school1,misstype,_,amount = arg12,arg13,arg14,arg15,arg16,arg17
+            if IsSecretValue(spellid) or IsSecretValue(amount) or IsSecretValue(school1) or IsSecretValue(misstype) then return end
             if (spellid == 0 and IsClassic) then spellid = spellname end
             self:MissEvent(guid, spellid, amount, periodic, misstype, petEvent, school1)
         end
@@ -1198,6 +1224,7 @@ function f:COMBAT_LOG_EVENT_UNFILTERED()
         else --its a SPELL event
             local periodic = cleuEvent:find("SPELL_PERIODIC", 1, true)
             local spellid,spellname,school1,amount,overheal,absorb,crit = arg12,arg13,arg14,arg15,arg16,arg17,arg18
+            if IsSecretValue(spellid) or IsSecretValue(amount) or IsSecretValue(school1) or IsSecretValue(crit) then return end
             if (spellid == 0 and IsClassic) then spellid = spellname end
             self:HealingEvent(guid, spellid, amount, periodic, crit, petEvent, school1)
         end
