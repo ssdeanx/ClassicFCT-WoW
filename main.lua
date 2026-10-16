@@ -10,17 +10,26 @@ local IsRetail = (WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1))
 local _tocVersion = (type(GetBuildInfo) == "function") and select(4, GetBuildInfo()) or 0
 local IsTitan = (WOW_PROJECT_ID == (WOW_PROJECT_WRATH_CLASSIC or 11))
 local IsWoWForever = (WOW_PROJECT_ID == WOW_PROJECT_CAMELOT) or (_tocVersion == 16001)
+-- Clients that still hand the legacy combat log to addons: vanilla/SoD, TBC and Wrath.
+local IsLegacyClient = IsClassic or IsBCC or IsTitan
 -- Combat is restricted on Retail/Midnight and WoW Forever: COMBAT_LOG_EVENT_UNFILTERED is
 -- unavailable to tainted addons and no public API exposes outgoing damage for arbitrary targets.
-local IsRestrictedCombat = IsRetail or IsWoWForever
+-- Unrecognised project IDs are treated as restricted too (fail closed).
+local IsRestrictedCombat = IsRetail or IsWoWForever or not IsLegacyClient
 local issecretvalue = _G.issecretvalue
 local function IsSecretValue(v)
     if (type(issecretvalue) ~= "function") then return false end
-    -- Guard the comparison itself: if issecretvalue returns a restricted boolean, `== true`
-    -- would otherwise raise on the exact input this helper exists to detect.
-    local ok, res = pcall(function() return issecretvalue(v) == true end)
-    return (ok and res) and true or false
+    -- Keep every operation on the result inside the protected call so a restricted boolean
+    -- can never escape into a caller's `if`. If the probe cannot be reduced to a plain
+    -- boolean, fail closed (treat as secret) instead of using the value.
+    local ok, res = pcall(function()
+        if issecretvalue(v) == true then return 1 end
+        return 0
+    end)
+    if not ok then return true end
+    return res == 1
 end
+
 local tinsert, tremove, tsort, format, strlen, strsub, gsub, floor, sin, cos, asin, acos, random, select, pairs, ipairs, unpack, bitband = table.insert, table.remove, table.sort, string.format, string.len, string.sub, string.gsub, math.floor, math.sin, math.cos, math.asin, math.acos, math.random, select, pairs, ipairs, unpack, bit.band
 local InCombatLockdown = InCombatLockdown
 local AbbreviateNumbers = AbbreviateNumbers
@@ -60,6 +69,16 @@ local function round(n, d)
     return math.floor(n * p) / p
 end
 
+-- Angle of a 2D vector (atan2 substitute rebuilt from the wrapped trig helpers).
+local function VectorAngle(x, y)
+    local len = sqrt(x * x + y * y)
+    if (len == 0) then return 0 end
+    local rx = max(-1, min(1, x / len))
+    local ry = max(-1, min(1, y / len))
+    if (rx >= 0) then return asin(ry) end
+    return (ry < 0) and -acos(rx) or acos(rx)
+end
+
 local damageRollingAverage = 0
 function CFCT:DamageRollingAverage()
     return damageRollingAverage
@@ -77,7 +96,7 @@ local function AddToAverage(value)
 end
 local ROLLINGAVERAGE_UPDATE_INTERVAL = 0.5
 local function CalculateRollingAverage()
-    local cacheSize = #damageCache
+    local cacheSize = #damageCacheround(damage / count, 2)
     local damage, count = 0, 0
     for k,v in ipairs(damageCache) do
         if (cacheSize > 200) and ((now - v.time) > ROLLING_AVERAGE_LENGTH) then
@@ -531,8 +550,10 @@ local ANIMATIONS = {
         if dir:find("RANDOM") then
             if (state.randomX == nil) and (state.randomY == nil) then
                 local a = random(1,628) / 100
-                local rx, ry = cos(a), sin(a)
-                state.randomX, state.randomY =  rx * dist, ry * dist
+                -- Re-derive the angle so the scroll direction is normalised to a
+                -- unit vector and always travels exactly `dist`.
+                local ra = VectorAngle(cos(a), sin(a))
+                state.randomX, state.randomY = cos(ra) * dist, sin(ra) * dist
             end
             scrollX = AnimateLinearAbsolute(state.initialTime, duration, 0, state.randomX)
             scrollY = AnimateLinearAbsolute(state.initialTime, duration, 0, state.randomY)
@@ -564,7 +585,6 @@ local ANIMATIONS = {
         state.scrollY = scrollY
     end,
     -- Map
-
 
 }
 
@@ -628,7 +648,6 @@ local function UpdateFontAnimations(self)
     -- print(self:GetParent():GetName(), round(self.state.strWidth,2), round(self.state.baseScale,2), round(self.state.width,2))
 end
 
-
 local function UpdateFontPos(self)
     local fctConfig = CFCT.Config
     local attach = self.state.attach
@@ -662,11 +681,6 @@ local function ApplyFontUpdate(self)
         -- self.font:SetScale(scale)
     -- end
 end
-
-
-
-
-
 
 ---@class FCTFontString : FontString
 ---@field Init fun(self: FCTFontString, state: table)
@@ -704,7 +718,6 @@ local function SpellIconText(spell) -- spellid or spellname
         iconCache[spell] = tx -- cache negative lookups too
     end
     if tx then
-        iconCache[spell] = tx
         local aspectRatio = fctConfig.spellIconAspectRatio
         local zoom = fctConfig.spellIconZoom
         local offsetX, offsetY = fctConfig.spellIconOffsetX, fctConfig.spellIconOffsetY
@@ -720,14 +733,12 @@ local function SpellIconText(spell) -- spellid or spellname
     return false
 end
 
-
 local function GetDamageTypeColor(school)
     return CFCT.Config.colorTable[school]
 end
 local function GetDotTypeColor(school)
     return CFCT.Config.colorTableDot[school]
 end
-
 
 local function DispatchText(guid, event, text, amount, spellid, spellicon, periodic, crit, miss, pet, school, count)
     local cat = (pet and "pet" or "")..event..(periodic and "tick" or "")..(crit and "crit" or miss and "miss" or "")
@@ -753,14 +764,13 @@ local function DispatchText(guid, event, text, amount, spellid, spellicon, perio
             text = FormatThousandSeparator(amount)
         end
     end
-    
+
     if (count > 1) and fctConfig.mergeEventsCounter then
         text = text.." x"..tostring(count)
     end
 
     if (spellicon and catConfig.showIcons) then text = spellicon..text end
 
-    
     local fontColor, fontAlpha
     local typeColor = periodic and fctConfig.colorTableDotEnabled and GetDotTypeColor(school) or GetDamageTypeColor(school)
     if (catConfig.colorByType == true) and typeColor then
@@ -809,7 +819,7 @@ CFCT.spellIdCache = spellIdCache
 local eventCache = {}
 CFCT.eventCache = eventCache
 local function CacheEvent(guid, event, amount, text, spellid, spellicon, periodic, crit, miss, pet, school)
-    if IsSecretValue(amount) or IsSecretValue(spellid) or IsSecretValue(school) or IsSecretValue(guid) or IsSecretValue(spellicon) then return end
+    if IsSecretValue(amount) or IsSecretValue(spellid) or IsSecretValue(school) or IsSecretValue(guid) or IsSecretValue(spellicon) or IsSecretValue(crit) then return end
     if (spellid and not spellIdCache[spellid]) then
         spellIdCache[spellid] = true
         if CFCT.ConfigPanel:IsVisible() then
@@ -901,7 +911,6 @@ local function ProcessCachedEvents()
         end
     end
 end
-
 
 -- CFCT.TestFrames = {}
 CFCT._testMode = false
@@ -1121,13 +1130,6 @@ function CFCT:UnitHealthMax(unit)
     return unitHealthMax[unit] or UnitHealthMax(unit)
 end
 
-
-
-
-
-
-
-
 local CLEU_SWING_EVENT = {
     SWING_DAMAGE = true,
     SWING_HEAL = true,
@@ -1235,7 +1237,7 @@ end
 
 
 function f:DamageEvent(guid, spellid, amount, periodic, crit, pet, school, dot)
-    if IsSecretValue(amount) or IsSecretValue(spellid) or IsSecretValue(school) or IsSecretValue(guid) then return end
+    if IsSecretValue(amount) or IsSecretValue(spellid) or IsSecretValue(school) or IsSecretValue(guid) or IsSecretValue(crit) then return end
     spellid = spellid or 6603 -- 6603 = Auto Attack
     local event = ((spellid == 75) or (spellid == 6603)) and "auto" or "spell" -- 75 = autoshot
     local spellicon = spellid and SpellIconText(spellid) or ""
@@ -1250,7 +1252,7 @@ function f:MissEvent(guid, spellid, amount, periodic, misstype, pet, school)
     CacheEvent(guid, event, 0, missText, spellid or 6603, spellicon, periodic, false, true, pet, school)
 end
 function f:HealingEvent(guid, spellid, amount, periodic, crit, pet, school)
-    if IsSecretValue(amount) or IsSecretValue(spellid) or IsSecretValue(school) or IsSecretValue(guid) then return end
+    if IsSecretValue(amount) or IsSecretValue(spellid) or IsSecretValue(school) or IsSecretValue(guid) or IsSecretValue(crit) then return end
     local event = "heal"
     local spellicon = spellid and SpellIconText(spellid) or ""
     CacheEvent(guid, event, amount, nil, spellid, spellicon, periodic, crit, false, pet, school)

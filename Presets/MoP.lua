@@ -137,7 +137,7 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
             direction = "UP",
             distance = 32
         }
-    },  
+    },
     automiss = {
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",
@@ -159,7 +159,7 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
             direction = "UP",
             distance = 32
         }
-    },  
+    },
     autocrit = {
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",
@@ -206,7 +206,7 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
             direction = "UP",
             distance = 32
         }
-    },  
+    },
     petautomiss = {
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",
@@ -228,7 +228,7 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
             direction = "UP",
             distance = 32
         }
-    },  
+    },
     petautocrit = {
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",

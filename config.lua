@@ -1288,15 +1288,21 @@ local enabledCheckbox = ConfigPanel:CreateCheckbox("Enable ClassicFCT", "Enables
 
 local hideBlizzDamageCheckbox = ConfigPanel:CreateCheckbox("Hide Blizzard Damage", "Enables/Disables the default Blizzard Floating Damage Text", enabledCheckbox, "LEFT", "RIGHT", 150, 0, DefaultVars.hideBlizz, "hideBlizz")
 hideBlizzDamageCheckbox:HookScript("OnClick", function(self)
+    if IsRestrictedCombat then return end
     SetCVar("floatingCombatTextCombatDamage", self:GetChecked() and "0" or "1")
 end)
 if (GetCVarDefault("floatingCombatTextCombatDamage") == nil) then hideBlizzDamageCheckbox:Hide() end
 
 local hideBlizzHealingCheckbox = ConfigPanel:CreateCheckbox("Hide Blizzard Healing", "Enables/Disables the default Blizzard Floating Healing Text", hideBlizzDamageCheckbox, "LEFT", "RIGHT", 150, 0, DefaultVars.hideBlizzHeals, "hideBlizzHeals")
 hideBlizzHealingCheckbox:HookScript("OnClick", function(self)
+    if IsRestrictedCombat then return end
     SetCVar("floatingCombatTextCombatHealing", self:GetChecked() and "0" or "1")
 end)
-if (GetCVarDefault("floatingCombatTextCombatHealing") == nil) then hideBlizzDamageCheckbox:Hide() end
+if (GetCVarDefault("floatingCombatTextCombatHealing") == nil) then hideBlizzHealingCheckbox:Hide() end
+if IsRestrictedCombat then
+    hideBlizzDamageCheckbox:Hide()
+    hideBlizzHealingCheckbox:Hide()
+end
 
 local headerPresets = ConfigPanel:CreateHeader("Config Presets", "GameFontNormalLarge", headerGlobal, "TOPLEFT", "BOTTOMLEFT", 0, -46)
 local newPresetBtn = ConfigPanel:CreateButton("New", "Creates a new preset", headerPresets, "TOPLEFT", "TOPRIGHT", 94, 0, function()
@@ -1459,10 +1465,10 @@ filteringBlacklistDropdown:HookScript("OnShow", function(self)
     local color = "FFFFFF"
     for k,v in pairs(spellIdTable) do
         local spell = GetSpellInfo(k)
-        if spell.name then
+        if (spell and spell.name) then
             CFCT.spellIdCache[k] = true
             table.insert(FilteringBlacklistMenu, {
-                text = format("|T%s:12:12:0:0:120:120:10:110:10:110|t|cff%s%s(%d)|r", spell.iconID, color, spell.name, k),
+                text = format("|T%s:12:12:0:0:120:120:10:110:10:110|t|cff%s%s(%s)|r", spell.iconID, color, spell.name, k),
                 value = k
             })
         end
@@ -1471,9 +1477,9 @@ filteringBlacklistDropdown:HookScript("OnShow", function(self)
     for k,v in pairs(CFCT.spellIdCache) do
         if (spellIdTable[k] == nil) then
             local spell = GetSpellInfo(k)
-            if spell.name then
+            if (spell and spell.name) then
                 table.insert(FilteringBlacklistMenu, {
-                    text = format("|T%s:12:12:0:0:120:120:10:110:10:110|t|cff%s%s(%d)|r", spell.iconID, color, spell.name, k),
+                    text = format("|T%s:12:12:0:0:120:120:10:110:10:110|t|cff%s%s(%s)|r", spell.iconID, color, spell.name, k),
                     value = k
                 })
             end
@@ -1583,10 +1589,10 @@ mergingIntervalOverrideDropdown:HookScript("OnShow", function(self)
     local color = "FFFFFF"
     for k,v in pairs(spellIdTable) do
         local spell = GetSpellInfo(k)
-        if spell.name then
+        if (spell and spell.name) then
             CFCT.spellIdCache[k] = true
             table.insert(MergeIntervalOverrideMenu, {
-                text = format("|T%s:12:12:0:0:120:120:10:110:10:110|t|cff%s%s(%d)|r", spell.iconID, color, spell.name, k),
+                text = format("|T%s:12:12:0:0:120:120:10:110:10:110|t|cff%s%s(%s)|r", spell.iconID, color, spell.name, k),
                 value = k
             })
         end
@@ -1595,9 +1601,9 @@ mergingIntervalOverrideDropdown:HookScript("OnShow", function(self)
     for k,v in pairs(CFCT.spellIdCache) do
         if (spellIdTable[k] == nil)then
             local spell = GetSpellInfo(k)
-            if spell.name then
+            if (spell and spell.name) then
                 table.insert(MergeIntervalOverrideMenu, {
-                    text = format("|T%s:12:12:0:0:120:120:10:110:10:110|t|cff%s%s(%d)|r", spell.iconID, color, spell.name, k),
+                    text = format("|T%s:12:12:0:0:120:120:10:110:10:110|t|cff%s%s(%s)|r", spell.iconID, color, spell.name, k),
                     value = k
                 })
             end

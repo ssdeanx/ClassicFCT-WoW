@@ -206,7 +206,7 @@ CFCT:AddDefaultPreset("Classic", {
             direction = "UP",
             distance = 32
         }
-    },  
+    },
     petautomiss = {
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",
@@ -228,7 +228,7 @@ CFCT:AddDefaultPreset("Classic", {
             direction = "UP",
             distance = 32
         }
-    },  
+    },
     petautocrit = {
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",
