@@ -1,0 +1,24 @@
+0.87u   Aug 16, 2024
+    - Fixed miss filter, ColorPicker and Config panels for The War Within
+
+0.87g   Sep 5, 2022
+    - Reduced possibility of text overlap when a lot of text is scrolling on screen
+
+0.87a   Feb 2, 2022
+    - Periodic effects can now be customised separately, including damage type colors
+
+0.86d   Nov 10, 2021
+    - Added an option for separating misses from merged events - Credit: https://github.com/akbyrd
+
+0.86a   Nov 6, 2021
+    - Added spell icon support for autoattacks and autoshots
+    - Added an option to override merge interval per spellid
+    - Added spellid blacklisting as a filter option
+    - Added spell icon formatting options - Credit: https://github.com/akbyrd
+
+0.85a   Dec  4, 2020
+    - Anti-Overlap number spacing is now customisable in the options
+
+0.84c   Oct 23, 2020
+    - Added event filtering, sorting and merging.
+    - Text can now be displayed behind nameplates
