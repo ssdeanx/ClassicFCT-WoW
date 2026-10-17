@@ -1,3 +1,41 @@
+0.88   Oct 17, 2026
+
+    Supported clients
+    - Support for Classic Era / Season of Discovery (11509), The Burning Crusade Classic
+      Anniversary (20506), WotLK Titanforge (38002), WoW Forever (16001) and Retail/Midnight
+      (120100), shipped as one .toc per client.
+    - Retail/Midnight and WoW Forever restrict the modern combat log, so ClassicFCT loads there
+      without registering it: options, presets and previews keep working, a one-time notice
+      explains the missing text, and Blizzard's floating combat text is left untouched.
+    - Unrecognised clients are treated as restricted instead of assumed to have a legacy combat log.
+
+    Combat text
+    - Events are guarded against secret values: anything that cannot be reduced to a plain value
+      is skipped instead of being formatted.
+    - Event registration failures are logged per event instead of aborting addon load.
+    - Added the "Max Simultaneous Numbers" slider (0-200, 0 = unlimited). When the limit is
+      reached, the oldest number is removed so the newest stays visible.
+    - Overflow numbers beyond the layout grid now follow a square-spiral fallback instead of being
+      pushed off-screen, and a three-pass resolve cleans up overlaps left by scaling text.
+    - Added "Dim Off-Target Text" with size and alpha multipliers for numbers from units other
+      than your current target; with no target selected, nothing is dimmed.
+    - Added "Demote Small Crits", which shows crits below a threshold with the normal (non-crit)
+      styling.
+    - Pow animation gained Overshoot and Settle Ratio sliders for its second phase.
+
+    Presets, options and localization
+    - Added the "Classic Plus" preset: Classic defaults capped at 60 simultaneous numbers, sorted
+      by amount, with event merging and merge counters enabled.
+    - Added a built-in locale system (Locales/), keyed by the English source strings. Missing keys
+      and unsupported client locales fall back to English. Shipped locales: German (deDE), Russian
+      (ruRU), French (frFR), Spanish (esES/esMX), Italian (itIT), Portuguese (ptBR), Chinese
+      (zhCN/zhTW) and Korean (koKR), all machine-assisted and marked for native review.
+
+    Fixes
+    - Spell icons are indexed by the spell's icon ID, so icons resolve on every client.
+    - Missing spell info no longer breaks icon and spell name lookups.
+    - Minor options panel fixes (checkbox anchors, random scroll direction).
+
 0.87u   Aug 16, 2024
     - Fixed miss filter, ColorPicker and Config panels for The War Within
 

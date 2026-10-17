@@ -1,4 +1,5 @@
 local addonName, CFCT = ...
+local L = CFCT.L
 _G[addonName] = CFCT
 -- Client flavor detection.
 -- WOW_PROJECT_CAMELOT (18) is WoW Forever; origin/forever ships interface 16001 and has no
@@ -96,7 +97,7 @@ local function AddToAverage(value)
 end
 local ROLLINGAVERAGE_UPDATE_INTERVAL = 0.5
 local function CalculateRollingAverage()
-    local cacheSize = #damageCacheround(damage / count, 2)
+    local cacheSize = #damageCache
     local damage, count = 0, 0
     for k,v in ipairs(damageCache) do
         if (cacheSize > 200) and ((now - v.time) > ROLLING_AVERAGE_LENGTH) then
@@ -511,9 +512,26 @@ local ANIMATIONS = {
     Pow = function(self, catConfig, animConfig)
         local duration = animConfig.duration * CFCT.Config.animDuration
         local midTime = self.state.initialTime + (duration * animConfig.inOutRatio)
+        local overshoot = animConfig.overshoot or 0
         if (now < midTime) then
             self.state.powScale = AnimateLinearAbsolute(self.state.initialTime, midTime - self.state.initialTime, animConfig.initScale, animConfig.midScale)
             -- self:SetTextHeight(catConfig.fontSize * AnimateLinearAbsolute(self.state.initialTime, midTime - self.state.initialTime, animConfig.initScale, animConfig.midScale))
+        elseif (overshoot ~= 0) then
+            -- Split the second phase into a push up to endScale + overshoot and a
+            -- settle back to endScale. settleRatio is the fraction of the second
+            -- phase spent settling; degenerate ratios fall back to the legacy
+            -- single-lerp phase so no zero-length leg is ever evaluated.
+            local settleTime = duration * (1 - animConfig.inOutRatio)
+            local settleRatio = max(0, min(1, animConfig.settleRatio or 0.25))
+            local pushTime = settleTime * (1 - settleRatio)
+            local fallTime = settleTime * settleRatio
+            if (pushTime <= 0) or (fallTime <= 0) then
+                self.state.powScale = AnimateLinearAbsolute(midTime, settleTime, animConfig.midScale, animConfig.endScale)
+            elseif (now < midTime + pushTime) then
+                self.state.powScale = AnimateLinearAbsolute(midTime, pushTime, animConfig.midScale, animConfig.endScale + overshoot)
+            else
+                self.state.powScale = AnimateLinearAbsolute(midTime + pushTime, fallTime, animConfig.endScale + overshoot, animConfig.endScale)
+            end
         else
             self.state.powScale = AnimateLinearAbsolute(midTime, duration * (1 - animConfig.inOutRatio), animConfig.midScale, animConfig.endScale)
             -- self:SetTextHeight(catConfig.fontSize * AnimateLinearAbsolute(midTime, duration * (1 - animConfig.inOutRatio), animConfig.midScale, animConfig.endScale))
@@ -740,10 +758,30 @@ local function GetDotTypeColor(school)
     return CFCT.Config.colorTableDot[school]
 end
 
-local function DispatchText(guid, event, text, amount, spellid, spellicon, periodic, crit, miss, pet, school, count)
+-- GUID of the player's current target, refreshed on PLAYER_TARGET_CHANGED and
+-- PLAYER_ENTERING_WORLD. Declared before DispatchText so that function captures
+-- it as an upvalue instead of reading a global.
+local targetGUID
+local function DispatchText(guid, event, text, amount, spellid, spellicon, periodic, crit, miss, pet, school, count, missKey)
     local cat = (pet and "pet" or "")..event..(periodic and "tick" or "")..(crit and "crit" or miss and "miss" or "")
     local fctConfig = CFCT.Config
     local catConfig = fctConfig[cat]
+
+    -- Demote small crits to their non-crit sibling category before filtering and
+    -- styling. If that category is missing or disabled, keep the original crit
+    -- category rather than dropping the number.
+    if (crit and not miss and fctConfig.demoteSmallCritsEnabled)
+    and ((fctConfig.demoteSmallCritThreshold or 0) > 0)
+    and ((amount or 0) < fctConfig.demoteSmallCritThreshold) then
+        local baseCat = gsub(cat, "crit$", "")
+        local baseConfig = fctConfig[baseCat]
+        if (baseConfig and baseConfig.enabled) then
+            cat = baseCat
+            catConfig = baseConfig
+            crit = false
+        end
+    end
+
     text = text or tostring(amount)
     -- TODO put fctConfig and catConfig into state
 
@@ -772,6 +810,7 @@ local function DispatchText(guid, event, text, amount, spellid, spellicon, perio
     if (spellicon and catConfig.showIcons) then text = spellicon..text end
 
     local fontColor, fontAlpha
+    local fontSize = catConfig.fontSize
     local typeColor = periodic and fctConfig.colorTableDotEnabled and GetDotTypeColor(school) or GetDamageTypeColor(school)
     if (catConfig.colorByType == true) and typeColor then
         local r, g, b, a = CFCT.Color2RGBA((strlen(typeColor) == 6) and "FF"..typeColor or typeColor)
@@ -782,6 +821,35 @@ local function DispatchText(guid, event, text, amount, spellid, spellicon, perio
         local r, g, b, a = CFCT.Color2RGBA(catConfig.fontColor)
         fontColor = {r, g, b, a}
         fontAlpha = a
+    end
+
+    -- Per-miss-type styling. Unknown miss keys (and keys without an override)
+    -- inherit the category color/scale, and the alpha never exceeds the value
+    -- resolved above.
+    if (miss and catConfig.missStyle and catConfig.missStyle.enabled) then
+        local style = catConfig.missStyle[missKey or "MISS"]
+        if style then
+            if style.color then
+                local r, g, b, a = CFCT.Color2RGBA((strlen(style.color) == 6) and "FF"..style.color or style.color)
+                a = min(a, fontAlpha)
+                fontColor = {r, g, b, a}
+                fontAlpha = a
+            end
+            if (style.scale and style.scale ~= 1) then
+                fontSize = fontSize * style.scale
+            end
+        end
+    end
+
+    -- Off-target dimming. The multiplier is baked into the size/alpha passed to
+    -- Init so string measurement and the anti-overlap grid see the final values.
+    -- isOffTarget is reserved for future per-frame off-target logic; no consumer yet.
+    local isOffTarget = false
+    local offTarget = fctConfig.offTarget
+    if (offTarget and offTarget.enabled and targetGUID and guid ~= targetGUID) then
+        fontSize = fontSize * (offTarget.sizeScale or 1)
+        fontAlpha = max(0, min(1, fontAlpha * (offTarget.alpha or 1)))
+        isOffTarget = true
     end
 
     if (fctConfig.maxDisplayed and fctConfig.maxDisplayed > 0) then
@@ -800,13 +868,14 @@ local function DispatchText(guid, event, text, amount, spellid, spellicon, perio
         text = text,
         amount = amount,
         miss = miss,
+        isOffTarget = isOffTarget,
         baseAlpha = 1,
         baseScale = 1,
         fadeAlpha = 1,
         powScale = 1,
         fontOptions = {
             fontPath = catConfig.fontPath,
-            fontSize = catConfig.fontSize,
+            fontSize = fontSize,
             fontStyle = catConfig.fontStyle,
             fontColor = fontColor,
             fontAlpha = fontAlpha
@@ -818,7 +887,7 @@ local spellIdCache = {}
 CFCT.spellIdCache = spellIdCache
 local eventCache = {}
 CFCT.eventCache = eventCache
-local function CacheEvent(guid, event, amount, text, spellid, spellicon, periodic, crit, miss, pet, school)
+local function CacheEvent(guid, event, amount, text, spellid, spellicon, periodic, crit, miss, pet, school, missKey)
     if IsSecretValue(amount) or IsSecretValue(spellid) or IsSecretValue(school) or IsSecretValue(guid) or IsSecretValue(spellicon) or IsSecretValue(crit) then return end
     if (spellid and not spellIdCache[spellid]) then
         spellIdCache[spellid] = true
@@ -861,6 +930,7 @@ local function CacheEvent(guid, event, amount, text, spellid, spellicon, periodi
         periodic = periodic,
         crit = crit,
         miss = miss,
+        missKey = missKey,
         pet = pet,
         school = school,
         count = 1
@@ -884,7 +954,7 @@ local function ProcessCachedEvents()
                 local merge
                 for _,e in ipairs(record.events) do
                     if e.miss and separateMisses then
-                        DispatchText(e.guid, e.event, e.text, e.amount, e.spellid, e.spellicon, e.periodic, e.crit, e.miss, e.pet, e.school)
+                        DispatchText(e.guid, e.event, e.text, e.amount, e.spellid, e.spellicon, e.periodic, e.crit, e.miss, e.pet, e.school, nil, e.missKey)
                     elseif not merge then
                         merge = e
                     else
@@ -892,20 +962,21 @@ local function ProcessCachedEvents()
                         merge.text = merge.text or e.text
                         merge.count = merge.count + 1
                         merge.miss = merge.miss == false and false or e.miss
+                        merge.missKey = merge.missKey or e.missKey
                         merge.crit = merge.crit or e.crit
                         merge.periodic = merge.periodic and e.periodic
                     end
                 end
                 if merge then
                     local text = (merge.amount ~= 0) and merge.amount or merge.text
-                    DispatchText(merge.guid, merge.event, text, merge.amount, merge.spellid, merge.spellicon, merge.periodic, merge.crit, merge.miss, merge.pet, merge.school, merge.count)
+                    DispatchText(merge.guid, merge.event, text, merge.amount, merge.spellid, merge.spellicon, merge.periodic, merge.crit, merge.miss, merge.pet, merge.school, merge.count, merge.missKey)
                 end
                 eventCache[id] = nil
             end
         else
             for _,e in ipairs(record.events) do
                 local text = (e.amount ~= 0) and e.amount or e.text
-                DispatchText(e.guid, e.event, e.text, e.amount, e.spellid, e.spellicon, e.periodic, e.crit, e.miss, e.pet, e.school)
+                DispatchText(e.guid, e.event, e.text, e.amount, e.spellid, e.spellicon, e.periodic, e.crit, e.miss, e.pet, e.school, nil, e.missKey)
             end
             eventCache[id] = nil
         end
@@ -986,6 +1057,7 @@ local events = {
     ADDON_LOADED = true,
     PLAYER_LOGOUT = true,
     PLAYER_ENTERING_WORLD = true,
+    PLAYER_TARGET_CHANGED = true,
     NAME_PLATE_UNIT_ADDED = true,
     NAME_PLATE_UNIT_REMOVED = true
 }
@@ -993,7 +1065,7 @@ for e, enabled in pairs(events) do
     if enabled then
         local ok, err = pcall(f.RegisterEvent, f, e)
         if not ok then
-            CFCT:Log("Could not register event "..tostring(e)..": "..tostring(err))
+            CFCT:Log(L("Could not register event %s: %s", tostring(e), tostring(err)))
         end
     end
 end
@@ -1076,6 +1148,11 @@ function f:ADDON_LOADED(name)
                 CFCT:Log(GetAddOnMetadata(addonName, "Version")..[[
 
 Recent changes:
+    0.88    Oct 17, 2026
+        - Supported clients aligned: Classic Era, TBC Anniversary, WotLK Titanforge, WoW Forever
+          and Retail, with restricted-client handling and secret-value guards
+        - Max Simultaneous Numbers slider, off-target dimming, small-crit demotion, Pow overshoot
+        - Classic Plus preset and a built-in locale system (10 locales, English fallback)
     0.87u   Aug 16, 2024
         - Fixed miss filter, ColorPicker and Config panels for The War Within]])
             end)
@@ -1083,7 +1160,7 @@ Recent changes:
         CFCT.lastVersion = version
         if IsRestrictedCombat then
             C_Timer.After(7, function()
-                CFCT:Log("Combat text is unavailable on this client: the modern combat log is restricted and no public API exposes outgoing damage. Options, presets and previews still work.")
+                CFCT:Log(L("Combat text is unavailable on this client: the modern combat log is restricted and no public API exposes outgoing damage. Options, presets and previews still work."))
             end)
         end
     end
@@ -1096,6 +1173,10 @@ end
 local playerGUID
 function f:PLAYER_ENTERING_WORLD()
     playerGUID = UnitGUID("player")
+    targetGUID = UnitGUID("target")
+end
+function f:PLAYER_TARGET_CHANGED()
+    targetGUID = UnitGUID("target")
 end
 
 local nameplates = {}
@@ -1248,8 +1329,9 @@ function f:MissEvent(guid, spellid, amount, periodic, misstype, pet, school)
     spellid = spellid or 6603 -- 6603 = Auto Attack
     local event = ((spellid == 75) or (spellid == 6603)) and "auto" or "spell" -- 75 = autoshot
     local spellicon = spellid and SpellIconText(spellid) or ""
+    local missKey = (type(misstype) == "string") and strupper(misstype) or "MISS"
     local missText = (type(misstype) == "string") and strlower(misstype):gsub("^%l", strupper) or (misstype or "Miss")
-    CacheEvent(guid, event, 0, missText, spellid or 6603, spellicon, periodic, false, true, pet, school)
+    CacheEvent(guid, event, 0, missText, spellid or 6603, spellicon, periodic, false, true, pet, school, missKey)
 end
 function f:HealingEvent(guid, spellid, amount, periodic, crit, pet, school)
     if IsSecretValue(amount) or IsSecretValue(spellid) or IsSecretValue(school) or IsSecretValue(guid) or IsSecretValue(crit) then return end

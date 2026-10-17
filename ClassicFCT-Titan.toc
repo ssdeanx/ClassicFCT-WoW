@@ -2,12 +2,13 @@
 ## Title: ClassicFCT
 ## Notes: Classic Floating Combat Text
 ## Author: Discord @tehypno
-## Version: M0.87z
+## Version: M0.88
 ## SavedVariables: ClassicFCTCustomPresets, ClassicFCTConfig, ClassicFCTVars, ClassicFCTTables
 ## SavedVariablesPerCharacter: ClassicFCTCharConfig, ClassicFCTCharVars, ClassicFCTCharTables
 ## OptionalDeps: LibStub, CallbackHandler-1.0, LibSharedMedia-3.0
 
 Libs\libs.xml
+Locales\locales.xml
 
 presets.lua
 Presets\presets.xml

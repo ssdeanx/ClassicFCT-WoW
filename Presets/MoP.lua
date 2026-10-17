@@ -1,4 +1,25 @@
 local addonName, CFCT = ...
+
+-- Fresh per-category table so no two categories share state. Keys absent from
+-- a miss type (or key) inherit the category styling.
+-- NOTE: engine-only phase 1 — no config UI sets missStyle.enabled yet, so this
+-- is inert until the UI pass ships. Do not remove as dead code.
+local function MissStyle()
+    return {
+        enabled = false,
+        DODGE = { color = nil, scale = 1 },
+        PARRY = { color = nil, scale = 1 },
+        MISS = { color = nil, scale = 1 },
+        BLOCK = { color = nil, scale = 1 },
+        RESIST = { color = nil, scale = 1 },
+        ABSORB = { color = nil, scale = 1 },
+        IMMUNE = { color = nil, scale = 1 },
+        EVADE = { color = nil, scale = 1 },
+        DEFLECT = { color = nil, scale = 1 },
+        REFLECT = { color = nil, scale = 1 }
+    }
+end
+
 CFCT:AddDefaultPreset("Mists of Pandaria", {
     animSpeed = 1,
     animDuration = 1.5,
@@ -15,6 +36,11 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
     preventOverlapSpacingY = 50,
     attachMode = "tn",
     attachModeFallback = true,
+    offTarget = {
+        enabled = false,
+        sizeScale = 1.0,
+        alpha = 1.0
+    },
     spellIconOffsetX = 0,
     spellIconOffsetY = 0,
     spellIconZoom = 1,
@@ -28,6 +54,8 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
     filterAverageEnabled = false,
     filterAverageThreshold = 10,
     filterMissesEnabled = false,
+    demoteSmallCritsEnabled = false,
+    demoteSmallCritThreshold = 0,
     sortByDamage = false,
     sortMissPrio = false,
     mergeEvents = false,
@@ -139,6 +167,7 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
         }
     },
     automiss = {
+        missStyle = MissStyle(),
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",
         fontSize = 42,
@@ -174,7 +203,9 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
             midScale = 1.6,
             endScale = 1,
             duration = 0.16,
-            inOutRatio = 0.3
+            inOutRatio = 0.3,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -208,6 +239,7 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
         }
     },
     petautomiss = {
+        missStyle = MissStyle(),
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",
         fontSize = 42,
@@ -243,7 +275,9 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
             midScale = 1.6,
             endScale = 1,
             duration = 0.16,
-            inOutRatio = 0.3
+            inOutRatio = 0.3,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -277,6 +311,7 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
         }
     },
     spellmiss = {
+        missStyle = MissStyle(),
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",
         fontSize = 42,
@@ -312,7 +347,9 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
             midScale = 1.6,
             endScale = 1,
             duration = 0.16,
-            inOutRatio = 0.3
+            inOutRatio = 0.3,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -346,6 +383,7 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
         }
     },
     spelltickmiss = {
+        missStyle = MissStyle(),
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",
         fontSize = 42,
@@ -381,7 +419,9 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
             midScale = 1.6,
             endScale = 1,
             duration = 0.16,
-            inOutRatio = 0.3
+            inOutRatio = 0.3,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -415,6 +455,7 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
         }
     },
     petspellmiss = {
+        missStyle = MissStyle(),
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",
         fontSize = 42,
@@ -450,7 +491,9 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
             midScale = 1.6,
             endScale = 1,
             duration = 0.16,
-            inOutRatio = 0.3
+            inOutRatio = 0.3,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -484,6 +527,7 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
         }
     },
     petspelltickmiss = {
+        missStyle = MissStyle(),
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",
         fontSize = 42,
@@ -519,7 +563,9 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
             midScale = 1.6,
             endScale = 1,
             duration = 0.16,
-            inOutRatio = 0.3
+            inOutRatio = 0.3,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -553,6 +599,7 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
         }
     },
     healmiss = {
+        missStyle = MissStyle(),
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",
         fontSize = 42,
@@ -588,7 +635,9 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
             midScale = 1.6,
             endScale = 1,
             duration = 0.16,
-            inOutRatio = 0.3
+            inOutRatio = 0.3,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -622,6 +671,7 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
         }
     },
     healtickmiss = {
+        missStyle = MissStyle(),
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",
         fontSize = 42,
@@ -657,7 +707,9 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
             midScale = 1.6,
             endScale = 1,
             duration = 0.16,
-            inOutRatio = 0.3
+            inOutRatio = 0.3,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -691,6 +743,7 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
         }
     },
     pethealmiss = {
+        missStyle = MissStyle(),
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",
         fontSize = 42,
@@ -726,7 +779,9 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
             midScale = 1.6,
             endScale = 1,
             duration = 0.16,
-            inOutRatio = 0.3
+            inOutRatio = 0.3,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -760,6 +815,7 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
         }
     },
     pethealtickmiss = {
+        missStyle = MissStyle(),
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",
         fontSize = 42,
@@ -795,7 +851,9 @@ CFCT:AddDefaultPreset("Mists of Pandaria", {
             midScale = 1.6,
             endScale = 1,
             duration = 0.16,
-            inOutRatio = 0.3
+            inOutRatio = 0.3,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,

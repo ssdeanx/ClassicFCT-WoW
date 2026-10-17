@@ -15,6 +15,11 @@ CFCT:AddDefaultPreset("Classic", {
     preventOverlapSpacingY = 50,
     attachMode = "tn",
     attachModeFallback = true,
+    offTarget = {
+        enabled = false,
+        sizeScale = 1.0,
+        alpha = 1.0
+    },
     spellIconOffsetX = 0,
     spellIconOffsetY = 0,
     spellIconZoom = 1,
@@ -28,6 +33,8 @@ CFCT:AddDefaultPreset("Classic", {
     filterAverageEnabled = false,
     filterAverageThreshold = 10,
     filterMissesEnabled = false,
+    demoteSmallCritsEnabled = false,
+    demoteSmallCritThreshold = 0,
     sortByDamage = false,
     sortMissPrio = false,
     mergeEvents = false,
@@ -174,7 +181,9 @@ CFCT:AddDefaultPreset("Classic", {
             midScale = 1.55,
             endScale = 1,
             duration = 0.3,
-            inOutRatio = 0.7
+            inOutRatio = 0.7,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -243,7 +252,9 @@ CFCT:AddDefaultPreset("Classic", {
             midScale = 1.55,
             endScale = 1,
             duration = 0.3,
-            inOutRatio = 0.7
+            inOutRatio = 0.7,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -312,7 +323,9 @@ CFCT:AddDefaultPreset("Classic", {
             midScale = 1.55,
             endScale = 1,
             duration = 0.3,
-            inOutRatio = 0.7
+            inOutRatio = 0.7,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -381,7 +394,9 @@ CFCT:AddDefaultPreset("Classic", {
             midScale = 1.55,
             endScale = 1,
             duration = 0.3,
-            inOutRatio = 0.7
+            inOutRatio = 0.7,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -450,7 +465,9 @@ CFCT:AddDefaultPreset("Classic", {
             midScale = 1.55,
             endScale = 1,
             duration = 0.3,
-            inOutRatio = 0.7
+            inOutRatio = 0.7,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -519,7 +536,9 @@ CFCT:AddDefaultPreset("Classic", {
             midScale = 1.55,
             endScale = 1,
             duration = 0.3,
-            inOutRatio = 0.7
+            inOutRatio = 0.7,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -588,7 +607,9 @@ CFCT:AddDefaultPreset("Classic", {
             midScale = 1.55,
             endScale = 1,
             duration = 0.3,
-            inOutRatio = 0.7
+            inOutRatio = 0.7,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -657,7 +678,9 @@ CFCT:AddDefaultPreset("Classic", {
             midScale = 1.55,
             endScale = 1,
             duration = 0.3,
-            inOutRatio = 0.7
+            inOutRatio = 0.7,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -726,7 +749,9 @@ CFCT:AddDefaultPreset("Classic", {
             midScale = 1.55,
             endScale = 1,
             duration = 0.3,
-            inOutRatio = 0.7
+            inOutRatio = 0.7,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,
@@ -795,7 +820,9 @@ CFCT:AddDefaultPreset("Classic", {
             midScale = 1.55,
             endScale = 1,
             duration = 0.3,
-            inOutRatio = 0.7
+            inOutRatio = 0.7,
+            overshoot = 0,
+            settleRatio = 0.25
         },
         FadeIn = {
             enabled = true,

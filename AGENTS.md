@@ -72,3 +72,9 @@ Character-level: `ClassicFCTCharConfig`, `ClassicFCTCharVars`, `ClassicFCTCharTa
 - LuaLS WoW annotations come from `~/.vscode/extensions/ketho.wow-api-...`, a machine-specific path.
 - Miss filters and merging depend on spell ids; preserve classic `spellid == 0 -> spellname` handling.
 - The changelog string inside `ADDON_LOADED` in `main.lua` and `## Version` in every `.toc` are version metadata; update both when cutting a release. For this repo's multi-client shipping, compare against the supported-client table above before editing interface versions.
+- `desks/`, `bench/`, and `classroom/` are agent workspace, not addon code: never reference them from any `.toc` load list, and exclude them from release zips. Same exclusion applies to `CAIRN.md`, `workshop.md`, and `hands-up.md`.
+
+## Workshop (desks, bench, cairn)
+
+- This repo root is a workshop. `desks/` holds one folder per desk (parallel agent work lands in its own desk folder); `bench/` is the shared workspace for labeled handoffs between desks; `CAIRN.md` is the operating disposition every desk reads before starting.
+- Agents (including parallel subagents) must read `CAIRN.md` first, then work from their own desk: read `desks/<name>/journal.md` newest-first, write `journal.md` + `.signals/` per the `desk-open` / `desk-journal` / `signal-write` skills, and leave shared findings/verdicts/drafts/reports in `bench/` per `bench-read`. Full map: `workshop.md`.
