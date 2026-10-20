@@ -3,7 +3,7 @@
 -- Source note: combat/UI terms cross-checked against official client terminology
 -- (per-locale GlobalStrings dumps, tekkub/wow-globalstrings GlobalStrings/koKR.lua;
 -- nameplate = 이름표, miss/dodge/parry = 빗나감/피함/막음 confirmed by client globals).
--- Missing keys fall back to the enUS table; "Pow" and "init" intentionally stay enUS.
+-- Missing keys fall back to the enUS table.
 local _, CFCT = ...
 
 CFCT:RegisterLocale("koKR", {
@@ -182,6 +182,7 @@ CFCT:RegisterLocale("koKR", {
     ["Every Nameplate"] = "모든 이름표",
     ["First Event"] = "첫 번째 이벤트",
     ["Last Event"] = "마지막 이벤트",
+    ["Pow"] = "증폭",
     ["Fade In"] = "페이드 인",
     ["Fade Out"] = "페이드 아웃",
     ["Scroll"] = "스크롤",
@@ -241,6 +242,8 @@ CFCT:RegisterLocale("koKR", {
     ["Pet Damage Over Time"] = "소환수 지속 피해",
     ["Pet Heals Over Time"] = "소환수 지속 치유",
     -- Dialogs and preset naming
+    ["OK"] = "확인",
+    ["Cancel"] = "취소",
     ["Preset Name"] = "프리셋 이름",
     ["This will overwrite your current configuration. Are you sure?"] = "현재 구성이 덮어써집니다. 계속할까요?",
     ["This will overwrite your the selected preset. Are you sure?"] = "선택한 프리셋이 덮어써집니다. 계속할까요?",
@@ -252,6 +255,7 @@ CFCT:RegisterLocale("koKR", {
     ["Default: %s"] = "기본: %s",
     ["Empty: Attack a Dummy"] = "비어 있음: 허수아비를 공격하세요",
     ["%s |cff808080built-in|r"] = "%s |cff808080내장|r",
+    ["init"] = "초기",
     -- Log / chat messages
     ["%s preset loaded."] = "%s 프리셋을 불러왔습니다.",
     ["Config saved to %s preset."] = "구성을 %s 프리셋에 저장했습니다.",
@@ -260,4 +264,14 @@ CFCT:RegisterLocale("koKR", {
     ["Preset '%s' already exists."] = "'%s' 프리셋이 이미 있습니다.",
     ["Could not register event %s: %s"] = "이벤트 %s을(를) 등록할 수 없습니다: %s",
     ["Combat text is unavailable on this client: the modern combat log is restricted and no public API exposes outgoing damage. Options, presets and previews still work."] = "이 클라이언트에서는 전투 텍스트를 사용할 수 없습니다. 최신 전투 기록이 제한되어 있으며, 공개 API로는 발신 피해 정보를 제공하지 않습니다. 옵션, 프리셋, 미리보기는 계속 작동합니다.",
+    -- Runtime diagnostics
+    ["no icon could be resolved for '%s' - the number is shown without an icon."] = "'%s'의 아이콘을 확인할 수 없습니다 - 숫자가 아이콘 없이 표시됩니다.",
+    ["unknown merge interval mode '%s' - '%s' is used instead."] = "알 수 없는 병합 간격 모드 '%s' - 대신 '%s'이(가) 사용됩니다.",
+    ["a colour value in the configuration could not be parsed - opaque white is used instead."] = "설정의 색상 값을 분석할 수 없습니다 - 대신 불투명한 흰색을 사용합니다.",
+    ["the preset '%s' does not exist - nothing was loaded."] = "'%s' 프리셋이 존재하지 않습니다 - 아무것도 불러오지 않았습니다.",
+    ["the preset '%s' does not exist - nothing was saved."] = "'%s' 프리셋이 존재하지 않습니다 - 아무것도 저장하지 않았습니다.",
+    ["the preset '%s' does not exist - nothing was renamed."] = "'%s' 프리셋이 존재하지 않습니다 - 아무것도 이름 변경하지 않았습니다.",
+    ["character-specific configuration enabled - the current settings were copied to this character."] = "캐릭터별 구성이 활성화되었습니다 - 현재 설정이 이 캐릭터에 복사되었습니다.",
+    ["character-specific configuration enabled - the saved settings for this character were restored."] = "캐릭터별 구성이 활성화되었습니다 - 이 캐릭터에 저장된 설정이 복원되었습니다.",
+    ["account-wide configuration enabled - the account settings were restored."] = "계정별 구성이 활성화되었습니다 - 계정 설정이 복원되었습니다.",
 })

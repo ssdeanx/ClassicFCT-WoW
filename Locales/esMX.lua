@@ -3,7 +3,7 @@
 -- Source note: combat/UI terms cross-checked against official client terminology
 -- (per-locale GlobalStrings dumps, tekkub/wow-globalstrings GlobalStrings/esMX.lua).
 -- esMX mirrors the esES table with LatAm-neutral wording; strings are otherwise shared.
--- Missing keys fall back to the enUS table; "Pow" and "init" intentionally stay enUS.
+-- Missing keys fall back to the enUS table.
 local _, CFCT = ...
 
 CFCT:RegisterLocale("esMX", {
@@ -182,6 +182,7 @@ CFCT:RegisterLocale("esMX", {
     ["Every Nameplate"] = "Todas las placas de nombre",
     ["First Event"] = "Primer evento",
     ["Last Event"] = "Último evento",
+    ["Pow"] = "Impulso",
     ["Fade In"] = "Aparecer",
     ["Fade Out"] = "Desaparecer",
     ["Scroll"] = "Desplazar",
@@ -241,6 +242,8 @@ CFCT:RegisterLocale("esMX", {
     ["Pet Damage Over Time"] = "Daño con el tiempo de mascota",
     ["Pet Heals Over Time"] = "Sanación con el tiempo de mascota",
     -- Dialogs and preset naming
+    ["OK"] = "Aceptar",
+    ["Cancel"] = "Cancelar",
     ["Preset Name"] = "Nombre del perfil",
     ["This will overwrite your current configuration. Are you sure?"] = "Tu configuración actual se sobrescribirá. ¿Seguro?",
     ["This will overwrite your the selected preset. Are you sure?"] = "El perfil seleccionado se sobrescribirá. ¿Seguro?",
@@ -252,6 +255,7 @@ CFCT:RegisterLocale("esMX", {
     ["Default: %s"] = "Predeterminado: %s",
     ["Empty: Attack a Dummy"] = "Vacío: ataca a un muñeco de entrenamiento",
     ["%s |cff808080built-in|r"] = "%s |cff808080integrado|r",
+    ["init"] = "inicio",
     -- Log / chat messages
     ["%s preset loaded."] = "Perfil %s cargado.",
     ["Config saved to %s preset."] = "Configuración guardada en el perfil %s.",
@@ -260,4 +264,14 @@ CFCT:RegisterLocale("esMX", {
     ["Preset '%s' already exists."] = "El perfil '%s' ya existe.",
     ["Could not register event %s: %s"] = "No se pudo registrar el evento %s: %s",
     ["Combat text is unavailable on this client: the modern combat log is restricted and no public API exposes outgoing damage. Options, presets and previews still work."] = "El texto de combate no está disponible en este cliente: el registro de combate moderno está restringido y ninguna API pública expone el daño infligido. Las opciones, los perfiles y las vistas previas siguen funcionando.",
+    -- Runtime diagnostics
+    ["no icon could be resolved for '%s' - the number is shown without an icon."] = "No se pudo resolver ningún icono para '%s' - el número se muestra sin icono.",
+    ["unknown merge interval mode '%s' - '%s' is used instead."] = "Modo de intervalo de combinación desconocido '%s' - se usa '%s' en su lugar.",
+    ["a colour value in the configuration could not be parsed - opaque white is used instead."] = "No se pudo analizar un valor de color de la configuración - se usa blanco opaco en su lugar.",
+    ["the preset '%s' does not exist - nothing was loaded."] = "El perfil '%s' no existe - no se cargó nada.",
+    ["the preset '%s' does not exist - nothing was saved."] = "El perfil '%s' no existe - no se guardó nada.",
+    ["the preset '%s' does not exist - nothing was renamed."] = "El perfil '%s' no existe - no se renombró nada.",
+    ["character-specific configuration enabled - the current settings were copied to this character."] = "Configuración por personaje activada - los ajustes actuales se copiaron a este personaje.",
+    ["character-specific configuration enabled - the saved settings for this character were restored."] = "Configuración por personaje activada - los ajustes guardados para este personaje se restauraron.",
+    ["account-wide configuration enabled - the account settings were restored."] = "Configuración por cuenta activada - los ajustes de la cuenta se restauraron.",
 })

@@ -2,7 +2,7 @@
 -- Machine-assisted translation; native review recommended.
 -- Source note: combat/UI terms cross-checked against official client terminology
 -- (per-locale GlobalStrings dumps, tekkub/wow-globalstrings GlobalStrings/deDE.lua).
--- Missing keys fall back to the enUS table; "Pow" and "init" intentionally stay enUS.
+-- Missing keys fall back to the enUS table.
 local _, CFCT = ...
 
 CFCT:RegisterLocale("deDE", {
@@ -181,6 +181,7 @@ CFCT:RegisterLocale("deDE", {
     ["Every Nameplate"] = "Alle Namensplaketten",
     ["First Event"] = "Erstes Ereignis",
     ["Last Event"] = "Letztes Ereignis",
+    ["Pow"] = "Anstieg",
     ["Fade In"] = "Einblenden",
     ["Fade Out"] = "Ausblenden",
     ["Scroll"] = "Scrollen",
@@ -240,6 +241,8 @@ CFCT:RegisterLocale("deDE", {
     ["Pet Damage Over Time"] = "Begleiter-Schaden über Zeit",
     ["Pet Heals Over Time"] = "Begleiter-Heilung über Zeit",
     -- Dialogs and preset naming
+    ["OK"] = "OK",
+    ["Cancel"] = "Abbrechen",
     ["Preset Name"] = "Profilname",
     ["This will overwrite your current configuration. Are you sure?"] = "Die aktuelle Konfiguration wird überschrieben. Fortfahren?",
     ["This will overwrite your the selected preset. Are you sure?"] = "Das ausgewählte Profil wird überschrieben. Fortfahren?",
@@ -251,6 +254,7 @@ CFCT:RegisterLocale("deDE", {
     ["Default: %s"] = "Standard: %s",
     ["Empty: Attack a Dummy"] = "Leer: Trainingspuppe angreifen",
     ["%s |cff808080built-in|r"] = "%s |cff808080integriert|r",
+    ["init"] = "Anfang",
     -- Log / chat messages
     ["%s preset loaded."] = "Profil %s geladen.",
     ["Config saved to %s preset."] = "Konfiguration im Profil %s gespeichert.",
@@ -259,4 +263,14 @@ CFCT:RegisterLocale("deDE", {
     ["Preset '%s' already exists."] = "Profil '%s' ist bereits vorhanden.",
     ["Could not register event %s: %s"] = "Ereignis %s konnte nicht registriert werden: %s",
     ["Combat text is unavailable on this client: the modern combat log is restricted and no public API exposes outgoing damage. Options, presets and previews still work."] = "Kampftext ist auf diesem Client nicht verfügbar: Das moderne Kampflog ist eingeschränkt und keine öffentliche API liefert ausgehenden Schaden. Optionen, Profile und Vorschauen funktionieren weiterhin.",
+    -- Runtime diagnostics
+    ["no icon could be resolved for '%s' - the number is shown without an icon."] = "Für '%s' konnte kein Symbol aufgelöst werden - die Zahl wird ohne Symbol angezeigt.",
+    ["unknown merge interval mode '%s' - '%s' is used instead."] = "Unbekannter Modus für das Zusammenfassungsintervall '%s' - stattdessen wird '%s' verwendet.",
+    ["a colour value in the configuration could not be parsed - opaque white is used instead."] = "Ein Farbwert in der Konfiguration konnte nicht gelesen werden - stattdessen wird deckendes Weiß verwendet.",
+    ["the preset '%s' does not exist - nothing was loaded."] = "Das Profil '%s' existiert nicht - es wurde nichts geladen.",
+    ["the preset '%s' does not exist - nothing was saved."] = "Das Profil '%s' existiert nicht - es wurde nichts gespeichert.",
+    ["the preset '%s' does not exist - nothing was renamed."] = "Das Profil '%s' existiert nicht - es wurde nichts umbenannt.",
+    ["character-specific configuration enabled - the current settings were copied to this character."] = "Charakterspezifische Konfiguration aktiviert - die aktuellen Einstellungen wurden auf diesen Charakter kopiert.",
+    ["character-specific configuration enabled - the saved settings for this character were restored."] = "Charakterspezifische Konfiguration aktiviert - die gespeicherten Einstellungen für diesen Charakter wurden wiederhergestellt.",
+    ["account-wide configuration enabled - the account settings were restored."] = "Kontoweite Konfiguration aktiviert - die Kontoeinstellungen wurden wiederhergestellt.",
 })

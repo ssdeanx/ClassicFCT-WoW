@@ -2,10 +2,13 @@
 ## Title: ClassicFCT
 ## Notes: Classic Floating Combat Text
 ## Author: Discord @tehypno
-## Version: M0.88
+## Version: M0.89
 ## SavedVariables: ClassicFCTCustomPresets, ClassicFCTConfig, ClassicFCTVars, ClassicFCTTables
 ## SavedVariablesPerCharacter: ClassicFCTCharConfig, ClassicFCTCharVars, ClassicFCTCharTables
 ## OptionalDeps: LibStub, CallbackHandler-1.0, LibSharedMedia-3.0
+## X-License: GPL-3.0-only
+## X-Category: Combat
+## X-Website: https://github.com/ssdeanx/ClassicFCT-WoW
 
 Libs\libs.xml
 Locales\locales.xml

@@ -3,7 +3,7 @@
 -- Source note: combat/UI terms cross-checked against official client terminology
 -- (per-locale GlobalStrings dumps, tekkub/wow-globalstrings GlobalStrings/zhTW.lua;
 -- nameplate = 名條, deflect = 避開 confirmed by the official client global strings).
--- Missing keys fall back to the enUS table; "Pow" and "init" intentionally stay enUS.
+-- Missing keys fall back to the enUS table.
 local _, CFCT = ...
 
 CFCT:RegisterLocale("zhTW", {
@@ -182,6 +182,7 @@ CFCT:RegisterLocale("zhTW", {
     ["Every Nameplate"] = "所有名條",
     ["First Event"] = "第一個事件",
     ["Last Event"] = "最後一個事件",
+    ["Pow"] = "增幅",
     ["Fade In"] = "淡入",
     ["Fade Out"] = "淡出",
     ["Scroll"] = "捲動",
@@ -241,6 +242,8 @@ CFCT:RegisterLocale("zhTW", {
     ["Pet Damage Over Time"] = "寵物持續傷害",
     ["Pet Heals Over Time"] = "寵物持續治療",
     -- Dialogs and preset naming
+    ["OK"] = "確定",
+    ["Cancel"] = "取消",
     ["Preset Name"] = "預設名稱",
     ["This will overwrite your current configuration. Are you sure?"] = "目前的設定將被覆寫。確定嗎？",
     ["This will overwrite your the selected preset. Are you sure?"] = "所選預設將被覆寫。確定嗎？",
@@ -252,6 +255,7 @@ CFCT:RegisterLocale("zhTW", {
     ["Default: %s"] = "預設值：%s",
     ["Empty: Attack a Dummy"] = "空：攻擊訓練假人",
     ["%s |cff808080built-in|r"] = "%s |cff808080內建|r",
+    ["init"] = "初始",
     -- Log / chat messages
     ["%s preset loaded."] = "已載入預設 %s。",
     ["Config saved to %s preset."] = "設定已儲存至預設 %s。",
@@ -260,4 +264,14 @@ CFCT:RegisterLocale("zhTW", {
     ["Preset '%s' already exists."] = "預設 '%s' 已存在。",
     ["Could not register event %s: %s"] = "無法註冊事件 %s：%s",
     ["Combat text is unavailable on this client: the modern combat log is restricted and no public API exposes outgoing damage. Options, presets and previews still work."] = "此客戶端無法使用戰鬥文字：現代戰鬥記錄受到限制，且沒有公開 API 提供造成的傷害資料。選項、預設與預覽仍可正常使用。",
+    -- Runtime diagnostics
+    ["no icon could be resolved for '%s' - the number is shown without an icon."] = "無法為 '%s' 解析圖示 - 該數字將不顯示圖示。",
+    ["unknown merge interval mode '%s' - '%s' is used instead."] = "未知的合併間隔模式 '%s' - 改用 '%s'。",
+    ["a colour value in the configuration could not be parsed - opaque white is used instead."] = "無法解析設定中的顏色值 - 改用不透明的白色。",
+    ["the preset '%s' does not exist - nothing was loaded."] = "預設 '%s' 不存在 - 未載入任何內容。",
+    ["the preset '%s' does not exist - nothing was saved."] = "預設 '%s' 不存在 - 未儲存任何內容。",
+    ["the preset '%s' does not exist - nothing was renamed."] = "預設 '%s' 不存在 - 未重新命名任何內容。",
+    ["character-specific configuration enabled - the current settings were copied to this character."] = "已啟用按角色設定 - 目前設定已複製到此角色。",
+    ["character-specific configuration enabled - the saved settings for this character were restored."] = "已啟用按角色設定 - 已還原此角色儲存的設定。",
+    ["account-wide configuration enabled - the account settings were restored."] = "已啟用帳號設定 - 已還原帳號設定。",
 })

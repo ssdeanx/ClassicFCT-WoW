@@ -36,6 +36,25 @@ function CFCT:GetActiveLocale()
     return self.localeCode
 end
 
+-- Format failures are swallowed by L() on purpose (L() must never throw - main.lua calls
+-- it from its error paths), but a silent failure is invisible. Report each failing key
+-- once so a broken translation is observable instead of silent. Once per KEY, not once per
+-- call: L() sits on hot paths and a bad value would otherwise flood the chat frame.
+local formatFailures = {}
+
+local function reportFormatFailure(key, err)
+    local id = tostring(key)
+    if formatFailures[id] then return end
+    formatFailures[id] = true
+    local msg = "locale format error for key ["..id.."]: "..tostring(err)
+    -- Guarded: a diagnostic must never be the thing that breaks L().
+    if (type(CFCT.Log) == "function") then
+        pcall(CFCT.Log, CFCT, msg)
+    else
+        pcall(print, "ClassicFCT: "..msg)
+    end
+end
+
 -- CFCT.L(key[, ...]): display string for key. Missing locale -> enUS table;
 -- missing key -> the key itself (keys are the enUS source strings). Extra
 -- arguments are applied with string.format, guarded: a bad translator value
@@ -50,6 +69,7 @@ function CFCT.L(key, ...)
     if (type(str) == "string") and (select("#", ...) > 0) then
         local ok, res = pcall(format, str, ...)
         if ok then return res end
+        reportFormatFailure(key, res)
     end
     return str
 end

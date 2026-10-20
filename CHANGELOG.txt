@@ -1,3 +1,73 @@
+M0.89   Oct 20, 2026
+
+    Combat text
+    - Fixed merged events mislabelling a hit as a miss. A merged group is now shown as a miss only
+      when every event in it is a miss, so a real hit is never relabelled or dropped by the
+      merge, and the result no longer depends on which event arrived last.
+    - Fixed damage, heals and misses of different kinds being merged into one number: the merge
+      bucket now separates them by event type and by miss flag.
+    - Event handling is now contained. A failure in one event no longer aborts the rest of the
+      frame, and the frame release step always runs, so a single error can no longer leave
+      numbers frozen on screen and grow without bound.
+    - Fixed the rolling average dropping one entry per cleanup pass and never ageing out old
+      entries outside combat, which made the "Hide Below Average Threshold" filter drift.
+    - Fixed the "Hide Below Blizzard Combat Text" option doing nothing on every client: the
+      option used CVar names that do not exist, and the guard around them turned the failure
+      into silence. The names are now resolved at runtime and the option works.
+    - The combat log is now read through the current API where the client provides it, with a
+      fallback to the older one, so the addon keeps working as those older APIs are retired.
+      A missing combat log is now reported once instead of failing silently.
+    - Fixed a spell event with no name being shown as an auto-attack.
+    - Fixed the preview numbers polluting the damage average while the options panel was open.
+    - Fixed the "Hide Blizzard Combat Text" state not re-syncing while no numbers were on screen.
+    - Numbers now use the client's own text scaling and measurement helpers instead of relying on
+      a handful of client globals being present.
+
+    Options and presets
+    - Fixed the preset Save, Delete and Rename buttons keeping a stale state after a different
+      preset was picked from the open dropdown. Deleting or renaming a built-in preset now says
+      so instead of changing it behind your back.
+    - Fixed the built-in preset badge and the confirm dialog buttons showing in English on
+      non-English clients.
+    - Fixed the options panel writing an empty value where a preset value should have been kept.
+    - Fixed the log dump helper returning the wrong slice of the log.
+    - The options panel no longer writes a global named "n", which could collide with another
+      addon's.
+
+    Layout and performance
+    - The overlap resolver now skips frames where no text size changed, which removes the bulk of
+      its cost when many numbers are on screen at once.
+
+    Compatibility
+    - The four classic-family .toc files now declare their client's game type, so an
+      unsupported classic client can no longer pick up the wrong one. The retail .toc is
+      deliberately left unmarked so it keeps loading everywhere it does today.
+    - The restricted-combat check now reads the client version as well as the project id, so the
+      options panel and the combat text agree on every client.
+
+    Options and presets
+    - The "text strata" setting now actually applies: it is set on the addon's own frame instead
+      of being silently ignored, because the frame it was written for could never support it.
+    - Spells that a client reports with an id of 0 are now identified by name on TBC Anniversary
+      and WotLK Titanforge as well as Classic Era, so they can be disabled by spell and given
+      their own merge interval on every supported client.
+
+    Localization
+    - Every locale now carries the full set of strings. The animation name and the initial
+      animation-status label, which previously fell back to English on every non-English client,
+      are now translated.
+
+    Documentation and packaging
+    - Added the GPL v3 license, the LGPL v2.1 text for the bundled LibSharedMedia library, and
+      third-party notices. The license of the bundled CallbackHandler library is not confirmed
+      and is flagged as an open item in those notices.
+    - Added a packaging script that builds the release archive from an explicit file list, so
+      no workspace file can end up in a published package, and verified the result is
+      reproducible.
+    - The release check now covers the locale tables, the version metadata, the client flavor
+      matrix and the packaging references, and derives the expected locale key count and the
+      expected version from the files themselves instead of hard-coding them.
+
 0.88   Oct 17, 2026
 
     Supported clients

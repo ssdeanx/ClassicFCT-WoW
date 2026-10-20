@@ -3,7 +3,7 @@
 -- Source note: combat/UI terms cross-checked against official client terminology
 -- (per-locale GlobalStrings dumps, tekkub/wow-globalstrings GlobalStrings/frFR.lua;
 -- "barres d'info" confirmed by official fr-FR Blizzard UI wording).
--- Missing keys fall back to the enUS table; "Pow" and "init" intentionally stay enUS.
+-- Missing keys fall back to the enUS table.
 local _, CFCT = ...
 
 CFCT:RegisterLocale("frFR", {
@@ -182,6 +182,7 @@ CFCT:RegisterLocale("frFR", {
     ["Every Nameplate"] = "Toutes les barres d'info",
     ["First Event"] = "Premier événement",
     ["Last Event"] = "Dernier événement",
+    ["Pow"] = "Amplitude",
     ["Fade In"] = "Apparition",
     ["Fade Out"] = "Disparition",
     ["Scroll"] = "Défilement",
@@ -241,6 +242,8 @@ CFCT:RegisterLocale("frFR", {
     ["Pet Damage Over Time"] = "Dégâts sur la durée du familier",
     ["Pet Heals Over Time"] = "Soins sur la durée du familier",
     -- Dialogs and preset naming
+    ["OK"] = "OK",
+    ["Cancel"] = "Annuler",
     ["Preset Name"] = "Nom du profil",
     ["This will overwrite your current configuration. Are you sure?"] = "Votre configuration actuelle va être écrasée. Confirmer ?",
     ["This will overwrite your the selected preset. Are you sure?"] = "Le profil sélectionné va être écrasé. Confirmer ?",
@@ -252,6 +255,7 @@ CFCT:RegisterLocale("frFR", {
     ["Default: %s"] = "Défaut : %s",
     ["Empty: Attack a Dummy"] = "Vide : attaquez un mannequin",
     ["%s |cff808080built-in|r"] = "%s |cff808080intégré|r",
+    ["init"] = "initiale",
     -- Log / chat messages
     ["%s preset loaded."] = "Profil %s chargé.",
     ["Config saved to %s preset."] = "Configuration enregistrée dans le profil %s.",
@@ -260,4 +264,14 @@ CFCT:RegisterLocale("frFR", {
     ["Preset '%s' already exists."] = "Le profil '%s' existe déjà.",
     ["Could not register event %s: %s"] = "Impossible d'enregistrer l'événement %s : %s",
     ["Combat text is unavailable on this client: the modern combat log is restricted and no public API exposes outgoing damage. Options, presets and previews still work."] = "Le texte de combat est indisponible sur ce client : le journal de combat moderne est restreint et aucune API publique n'expose les dégâts sortants. Les options, les profils et les aperçus fonctionnent toujours.",
+    -- Runtime diagnostics
+    ["no icon could be resolved for '%s' - the number is shown without an icon."] = "Aucune icône n'a pu être résolue pour '%s' - le nombre est affiché sans icône.",
+    ["unknown merge interval mode '%s' - '%s' is used instead."] = "Mode d'intervalle de fusion inconnu '%s' - '%s' est utilisé à la place.",
+    ["a colour value in the configuration could not be parsed - opaque white is used instead."] = "Une valeur de couleur de la configuration n'a pas pu être analysée - le blanc opaque est utilisé à la place.",
+    ["the preset '%s' does not exist - nothing was loaded."] = "Le profil '%s' n'existe pas - rien n'a été chargé.",
+    ["the preset '%s' does not exist - nothing was saved."] = "Le profil '%s' n'existe pas - rien n'a été enregistré.",
+    ["the preset '%s' does not exist - nothing was renamed."] = "Le profil '%s' n'existe pas - rien n'a été renommé.",
+    ["character-specific configuration enabled - the current settings were copied to this character."] = "Configuration par personnage activée - les paramètres actuels ont été copiés vers ce personnage.",
+    ["character-specific configuration enabled - the saved settings for this character were restored."] = "Configuration par personnage activée - les paramètres enregistrés pour ce personnage ont été restaurés.",
+    ["account-wide configuration enabled - the account settings were restored."] = "Configuration par compte activée - les paramètres du compte ont été restaurés.",
 })

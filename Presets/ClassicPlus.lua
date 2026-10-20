@@ -1,4 +1,4 @@
-local addonName, CFCT = ...
+local _, CFCT = ...
 CFCT:AddDefaultPreset("Classic Plus", {
     animSpeed = 1,
     animDuration = 1.5,
@@ -144,7 +144,7 @@ CFCT:AddDefaultPreset("Classic Plus", {
             direction = "UP",
             distance = 32
         }
-    },  
+    },
     automiss = {
         enabled = true,
         fontPath = "Fonts\\FRIZQT__.TTF",

@@ -105,8 +105,8 @@ local function newEnv(vector)
     env.UIParent = {}
     env.WorldFrame = {}
     env.C_NamePlate = { GetNamePlateForUnit = function() return nil end, GetNamePlates = function() return {} end }
-    env.C_AddOns = { GetAddOnMetadata = function() return "M0.88" end }
-    env.GetAddOnMetadata = function() return "M0.88" end
+    env.C_AddOns = { GetAddOnMetadata = function() return "M0.89" end }
+    env.GetAddOnMetadata = function() return "M0.89" end
     env.C_Timer = { After = function(_, fn) if fn then fn() end end }
     env.GetTime = function() return 100 end
     env.InCombatLockdown = function() return false end
@@ -178,8 +178,184 @@ for _, vector in ipairs(VECTORS) do
 end
 
 --------------------------------------------------------------------------------
+-- H. Secret-value probe fails CLOSED when the probe is unavailable.
+--------------------------------------------------------------------------------
+-- The security audit (bench/findings-security-privacy.md, SP-01) found that an ABSENT
+-- probe used to return "not secret", i.e. it failed OPEN and silently: a client that
+-- restricts combat-log values but withholds issecretvalue would have had its restricted
+-- values formatted straight into the combat text. The probe is now resolved lazily and
+-- every failure mode suppresses the event.
+--
+-- This drives the real CLEU handler with the probe REMOVED from the environment and
+-- asserts that no number is dispatched, and that the condition is reported once rather
+-- than failing silently. It is a behavioural test, not a source grep.
+local function runCLEUWithoutProbe(vector)
+    local env = newEnv(vector)
+    -- Remove the probe entirely: this is the failure mode under test.
+    env.issecretvalue = nil
+    env.CombatLogGetCurrentEventInfo = function()
+        -- The source MUST be the player ("Player-1" is the stub's UnitGUID),
+        -- or the ownership check drops the event before any secret guard is
+        -- reached and the test would pass vacuously.
+        return 0, "SPELL_DAMAGE", false, "Player-1", "src", 1, 0, "Enemy-1", "dst", 2, 0,
+            1234, "TestSpell", 4, 500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    end
+    env.C_CombatLog = { GetCurrentEventInfo = env.CombatLogGetCurrentEventInfo }
+    env.Enum = { CombatLogObject = { TypeGuardian = 8, TypePet = 16, AffiliationMine = 1 } }
+    env.COMBATLOG_OBJECT_TYPE_GUARDIAN = nil
+    env.COMBATLOG_OBJECT_TYPE_PET = nil
+    env.COMBATLOG_OBJECT_AFFILIATION_MINE = nil
+
+    local CFCT = { _log = {}, _testMode = false }
+    CFCT.Log = function(self, msg) table.insert(self._log, msg or "") end
+    CFCT.L = function(key, ...) return key end
+    -- The config needs the spell-icon fields the dispatch path reads, or the
+    -- handler raises on a nil aspect ratio before the observable is reached.
+    CFCT.Config = {
+        animDuration = 1, OnLoad = function() end, mergeEvents = false,
+        spellIconAspectRatio = 1, spellIconZoom = 1,
+        spellIconOffsetX = 0, spellIconOffsetY = 0,
+        showIcons = false, abbreviateNumbers = false, kiloSeparator = false,
+        demoteSmallCritsEnabled = false, demoteSmallCritThreshold = 0,
+        filterAbsoluteEnabled = false, filterRelativeEnabled = false,
+        filterAverageEnabled = false, colorByType = false,
+        colorTableDotEnabled = false, maxDisplayed = 0,
+    }
+    CFCT.ConfigPanel = { IsVisible = function() return false end }
+    -- The real observable: an event that escapes the secret guard reaches
+    -- CacheEvent, which records the spell id in CFCT.spellIdCache. If the
+    -- guard suppresses the event, that cache stays empty. (SetText on a
+    -- FontString is instrumented too, but a raise further down the pipeline
+    -- can abort before it, so the cache is the reliable signal.)
+    local dispatched = false
+    local realCreateFontString = env.CreateFontString
+    env.CreateFontString = function(...)
+        local fs = realCreateFontString(...)
+        local realSetText = fs.SetText
+        fs.SetText = function(self, text)
+            dispatched = true
+            return realSetText(self, text)
+        end
+        return fs
+    end
+
+    local chunk = loadfile("main.lua")
+    if not chunk then return nil, "loadfile failed" end
+    setfenv(chunk, env)
+    local ok, err = pcall(chunk, "ClassicFCT", CFCT)
+    if not ok then return nil, tostring(err) end
+    local frame = CFCT.frame
+    if not frame then return nil, "no frame" end
+    -- playerGUID is only assigned by PLAYER_ENTERING_WORLD; without it the
+    -- ownership check drops the event before any secret guard is reached and
+    -- the test would pass vacuously.
+    pcall(function() frame:PLAYER_ENTERING_WORLD() end)
+    local ran = pcall(function() frame:COMBAT_LOG_EVENT_UNFILTERED() end)
+    local cached = 0
+    if type(CFCT.spellIdCache) == "table" then
+        for _ in pairs(CFCT.spellIdCache) do cached = cached + 1 end
+    end
+    return { ran = ran, dispatched = dispatched, cached = cached, log = CFCT._log }, nil
+end
+
+-- Positive control: with a WORKING probe the same event MUST reach the cache.
+-- Without this, section H would also pass if the handler never processed
+-- anything at all, which would make the negative test meaningless.
+local function runCLEUWithWorkingProbe(vector)
+    local env = newEnv(vector)
+    env.CombatLogGetCurrentEventInfo = function()
+        return 0, "SPELL_DAMAGE", false, "Player-1", "src", 1, 0, "Enemy-1", "dst", 2, 0,
+            1234, "TestSpell", 4, 500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    end
+    env.C_CombatLog = { GetCurrentEventInfo = env.CombatLogGetCurrentEventInfo }
+    env.Enum = { CombatLogObject = { TypeGuardian = 8, TypePet = 16, AffiliationMine = 1 } }
+    local CFCT = { _log = {}, _testMode = false }
+    CFCT.Log = function(self, msg) table.insert(self._log, msg or "") end
+    CFCT.L = function(key, ...) return key end
+    CFCT.Config = {
+        animDuration = 1, OnLoad = function() end, mergeEvents = false,
+        spellIconAspectRatio = 1, spellIconZoom = 1,
+        spellIconOffsetX = 0, spellIconOffsetY = 0,
+        showIcons = false, abbreviateNumbers = false, kiloSeparator = false,
+        demoteSmallCritsEnabled = false, demoteSmallCritThreshold = 0,
+        filterAbsoluteEnabled = false, filterRelativeEnabled = false,
+        filterAverageEnabled = false, colorByType = false,
+        colorTableDotEnabled = false, maxDisplayed = 0,
+    }
+    CFCT.ConfigPanel = { IsVisible = function() return false end }
+    local chunk = loadfile("main.lua")
+    if not chunk then return nil, "loadfile failed" end
+    setfenv(chunk, env)
+    local ok, err = pcall(chunk, "ClassicFCT", CFCT)
+    if not ok then return nil, tostring(err) end
+    local frame = CFCT.frame
+    if not frame then return nil, "no frame" end
+    pcall(function() frame:PLAYER_ENTERING_WORLD() end)
+    local ran = pcall(function() frame:COMBAT_LOG_EVENT_UNFILTERED() end)
+    local cached = 0
+    if type(CFCT.spellIdCache) == "table" then
+        for _ in pairs(CFCT.spellIdCache) do cached = cached + 1 end
+    end
+    return { ran = ran, cached = cached, log = CFCT._log }, nil
+end
+
+do
+    local vector = VECTORS[1]  -- Vanilla: a legacy client, so CLEU is registered.
+    local control, controlErr = runCLEUWithWorkingProbe(vector)
+    if not control then
+        check("H: positive control - a non-secret event reaches the cache", false, controlErr)
+    else
+        check("H: positive control - a non-secret event reaches the cache", control.cached == 1,
+            "cached " .. control.cached)
+    end
+end
+
+do
+    local vector = VECTORS[1]  -- Vanilla: a legacy client, so CLEU is registered.
+    local result, err = runCLEUWithoutProbe(vector)
+    if not result then
+        check("H: secret probe absent -> CLEU handler is contained", false, err)
+    else
+        check("H: secret probe absent -> CLEU handler does not raise", result.ran)
+        -- The guard must have suppressed the event: no spell may reach the cache.
+        check("H: secret probe absent -> no event reaches the cache", result.cached == 0,
+            "cached " .. result.cached)
+        -- ...and no text may be produced.
+        check("H: secret probe absent -> no number is dispatched", result.dispatched == false)
+        -- ...and it must say so, once, rather than failing silently.
+        local reported = 0
+        for _, msg in ipairs(result.log) do
+            if tostring(msg):find("probe", 1, true) then reported = reported + 1 end
+        end
+        check("H: secret probe absent -> reported once", reported == 1, "got " .. reported)
+    end
+end
+
+--------------------------------------------------------------------------------
 -- C. Locale integrity: keys, order, placeholders, encoding.
 --------------------------------------------------------------------------------
+-- Single source of truth for the locale file list: used for loading, for the
+-- BOM check and for the per-locale key-count checks.
+local LOCALE_FILES = {
+    "Locales/enUS.lua", "Locales/deDE.lua", "Locales/ruRU.lua", "Locales/frFR.lua",
+    "Locales/esES.lua", "Locales/esMX.lua", "Locales/itIT.lua", "Locales/ptBR.lua",
+    "Locales/zhCN.lua", "Locales/zhTW.lua", "Locales/koKR.lua",
+}
+-- Every locale table other than enUS.
+local TRANSLATED_LOCALES = {
+    "deDE", "ruRU", "frFR", "esES", "esMX", "itIT", "ptBR", "zhCN", "zhTW", "koKR",
+}
+-- Documented per-locale absences. Every locale table now carries the FULL key
+-- set, so there are none: "Pow" and "init" used to be intentionally omitted
+-- and fall back to English, and both are now translated. The table is kept
+-- (empty) because the check that consumes it is the right shape for a future
+-- key that genuinely cannot be translated, and an undocumented absence must
+-- still fail the gate.
+local DOCUMENTED_ABSENCES = {}
+-- Sanity floor for the enUS table: catches a truncated or half-written file
+-- without hard-coding the current key count.
+local MIN_LOCALE_KEYS = 200
+
 local localeTables = {}
 local localeOrder = {}
 local fakeCFCT = {}
@@ -188,106 +364,143 @@ function fakeCFCT:RegisterLocale(code, tbl)
     table.insert(localeOrder, code)
 end
 
-for _, path in ipairs({ "Locales/enUS.lua", "Locales/deDE.lua", "Locales/ruRU.lua", "Locales/frFR.lua",
-    "Locales/esES.lua", "Locales/esMX.lua", "Locales/itIT.lua", "Locales/ptBR.lua",
-    "Locales/zhCN.lua", "Locales/zhTW.lua", "Locales/koKR.lua" }) do
+for _, path in ipairs(LOCALE_FILES) do
     local chunk = loadfile(path)
     local ok, err = pcall(chunk, "locales", fakeCFCT)
     check("C: locale registers " .. path, ok, err)
 end
 
+-- Definition order must come from source text: pairs() order is unspecified.
+local function keyOrderFromSource(path)
+    local text = readAll(path) or ""
+    local order, seen = {}, {}
+    for k in text:gmatch('%["(.-)"%]%s*=') do
+        if not seen[k] then
+            seen[k] = true
+            order[#order + 1] = k
+        end
+    end
+    return order
+end
+
+-- The enUS source is the reference. Its key count is DERIVED from the source
+-- file, never hard-coded, so adding a key does not silently break the gate.
+local enSourceOrder = keyOrderFromSource("Locales/enUS.lua")
+local enSourceCount = #enSourceOrder
+check("C: enUS source parses keyed entries", enSourceCount > 0, "got " .. enSourceCount)
+check("C: enUS key count above the sanity floor", enSourceCount >= MIN_LOCALE_KEYS,
+    "got " .. enSourceCount .. " (floor " .. MIN_LOCALE_KEYS .. ")")
+
+local enUSSet, enUSIndex = {}, {}
+for i, k in ipairs(enSourceOrder) do
+    enUSSet[k] = true
+    enUSIndex[k] = i
+end
+
 local enUS = localeTables["enUS"]
 check("C: enUS registered", enUS ~= nil)
-check("C: enUS key count 242", enUS and next(enUS) ~= nil)
-
 if enUS then
-    local enUSSet, enUSIndex = {}, {}
-    for k in pairs(enUS) do enUSSet[k] = true end
     local n = 0
     for k in pairs(enUS) do n = n + 1 end
-    check("C: enUS has 242 keys", n == 242, "got " .. n)
-
-    -- Definition order must come from source text: pairs() order is unspecified.
-    local function keyOrderFromSource(path)
-        local text = readAll(path) or ""
-        local order, seen = {}, {}
-        for k in text:gmatch('%["(.-)"%]%s*=') do
-            if not seen[k] then
-                seen[k] = true
-                order[#order + 1] = k
-            end
-        end
-        return order
+    check("C: enUS registered key count matches the source", n == enSourceCount,
+        "got " .. n .. ", source " .. enSourceCount)
+    -- enUS is the identity table: every value equals its key, because the key
+    -- IS the English source string.
+    local notIdentity = {}
+    for _, k in ipairs(enSourceOrder) do
+        if enUS[k] ~= k then notIdentity[#notIdentity + 1] = k end
     end
-    local enSourceOrder = keyOrderFromSource("Locales/enUS.lua")
-    check("C: enUS source parses 242 keyed entries", #enSourceOrder == 242, "got " .. #enSourceOrder)
-    for i, k in ipairs(enSourceOrder) do enUSIndex[k] = i end
+    check("C: enUS is the identity table (value == key)", #notIdentity == 0,
+        #notIdentity > 0 and table.concat(notIdentity, ", ") or nil)
+end
 
-    local function placeholderProfile(s)
-        local profile = {}
-        if type(s) == "string" then
-            for token in s:gmatch("%%s") do profile[#profile + 1] = "s" end
-            for token in s:gmatch("%%d") do profile[#profile + 1] = "d" end
-            -- count total in order: coarse check via counts
-            local count_s, count_d = 0, 0
-            for _ in s:gmatch("%%s") do count_s = count_s + 1 end
-            for _ in s:gmatch("%%d") do count_d = count_d + 1 end
-            local count_c = 0
-            for _ in s:gmatch("|c") do count_c = count_c + 1 end
-            local count_r = 0
-            for _ in s:gmatch("|r") do count_r = count_r + 1 end
-            profile.count_s, profile.count_d, profile.count_c, profile.count_r = count_s, count_d, count_c, count_r
-        end
-        return profile
+-- How many documented absences actually exist in enUS: that is how much a
+-- translated table is expected to be short by.
+local expectedAbsences = 0
+for k in pairs(DOCUMENTED_ABSENCES) do
+    if enUSSet[k] then expectedAbsences = expectedAbsences + 1 end
+end
+local expectedLocaleCount = enSourceCount - expectedAbsences
+
+local function placeholderProfile(s)
+    local profile = {}
+    if type(s) == "string" then
+        -- A positional specifier (%1$s) is the same specifier as its plain
+        -- form (%s): normalise it before counting, so a translator using the
+        -- positional form does not look like a placeholder mismatch.
+        local norm = s:gsub("%%(%d+)%$", "%%")
+        local count_s, count_d = 0, 0
+        for _ in norm:gmatch("%%s") do count_s = count_s + 1 end
+        for _ in norm:gmatch("%%d") do count_d = count_d + 1 end
+        local count_c = 0
+        for _ in norm:gmatch("|c") do count_c = count_c + 1 end
+        local count_r = 0
+        for _ in norm:gmatch("|r") do count_r = count_r + 1 end
+        profile.count_s, profile.count_d, profile.count_c, profile.count_r = count_s, count_d, count_c, count_r
     end
+    return profile
+end
 
-    for _, code in ipairs({ "deDE", "ruRU", "frFR", "esES", "esMX", "itIT", "ptBR", "zhCN", "zhTW", "koKR" }) do
-        local tbl = localeTables[code]
-        if not tbl then
-            check("C: " .. code .. " table present", false)
-        else
-            local unknown, mismatch = 0, {}
-            local keys = {}
-            for k, v in pairs(tbl) do
-                if not enUSSet[k] then
-                    unknown = unknown + 1
-                    keys[#keys + 1] = tostring(k)
-                else
-                    local pe, pl = placeholderProfile(enUS[k]), placeholderProfile(v)
-                    if pe.count_s ~= pl.count_s or pe.count_d ~= pl.count_d
-                        or pe.count_c ~= pl.count_c or pe.count_r ~= pl.count_r then
-                        mismatch[#mismatch + 1] = k
-                    end
-                end
-            end
-            check("C: " .. code .. " has no unknown keys", unknown == 0,
-                unknown > 0 and table.concat(keys, ", ") or nil)
-            check("C: " .. code .. " placeholder/escape integrity",
-                #mismatch == 0, #mismatch > 0 and table.concat(mismatch, ", ") or nil)
-            -- order check: locale keys must appear in the same relative order as enUS source
-            local locOrder = keyOrderFromSource("Locales/" .. code .. ".lua")
-            local expected = {}
-            for _, k in ipairs(enSourceOrder) do
-                if tbl[k] ~= nil then expected[#expected + 1] = k end
-            end
-            local orderOk, orderBad = (#locOrder == #expected), nil
-            if orderOk then
-                for i = 1, #expected do
-                    if locOrder[i] ~= expected[i] then
-                        orderOk = false
-                        orderBad = tostring(locOrder[i]) .. " (expected " .. tostring(expected[i]) .. ")"
-                        break
-                    end
-                end
+for _, code in ipairs(TRANSLATED_LOCALES) do
+    local tbl = localeTables[code]
+    if not tbl then
+        check("C: " .. code .. " table present", false)
+    else
+        local unknown, mismatch = 0, {}
+        local keys = {}
+        local count = 0
+        for k, v in pairs(tbl) do
+            count = count + 1
+            if not enUSSet[k] then
+                unknown = unknown + 1
+                keys[#keys + 1] = tostring(k)
             else
-                orderBad = "#order=" .. #locOrder .. " expected=" .. #expected
+                local pe, pl = placeholderProfile(enUS[k]), placeholderProfile(v)
+                if pe.count_s ~= pl.count_s or pe.count_d ~= pl.count_d
+                    or pe.count_c ~= pl.count_c or pe.count_r ~= pl.count_r then
+                    mismatch[#mismatch + 1] = k
+                end
             end
-            check("C: " .. code .. " key order matches enUS", orderOk, orderBad)
         end
+        check("C: " .. code .. " has no unknown keys", unknown == 0,
+            unknown > 0 and table.concat(keys, ", ") or nil)
+        check("C: " .. code .. " placeholder/escape integrity",
+            #mismatch == 0, #mismatch > 0 and table.concat(mismatch, ", ") or nil)
+        -- Key count must match enUS minus the documented absences, and nothing else.
+        check("C: " .. code .. " key count matches enUS minus documented absences",
+            count == expectedLocaleCount,
+            "got " .. count .. ", expected " .. expectedLocaleCount)
+        local undocumented = {}
+        for _, k in ipairs(enSourceOrder) do
+            if tbl[k] == nil and not DOCUMENTED_ABSENCES[k] then
+                undocumented[#undocumented + 1] = k
+            end
+        end
+        check("C: " .. code .. " only misses documented keys", #undocumented == 0,
+            #undocumented > 0 and table.concat(undocumented, ", ") or nil)
+        -- order check: locale keys must appear in the same relative order as enUS source
+        local locOrder = keyOrderFromSource("Locales/" .. code .. ".lua")
+        local expected = {}
+        for _, k in ipairs(enSourceOrder) do
+            if tbl[k] ~= nil then expected[#expected + 1] = k end
+        end
+        local orderOk, orderBad = (#locOrder == #expected), nil
+        if orderOk then
+            for i = 1, #expected do
+                if locOrder[i] ~= expected[i] then
+                    orderOk = false
+                    orderBad = tostring(locOrder[i]) .. " (expected " .. tostring(expected[i]) .. ")"
+                    break
+                end
+            end
+        else
+            orderBad = "#order=" .. #locOrder .. " expected=" .. #expected
+        end
+        check("C: " .. code .. " key order matches enUS", orderOk, orderBad)
     end
 end
 
-for _, file in ipairs({ "Locales/enUS.lua", "Locales/zhCN.lua", "Locales/ruRU.lua" }) do
+for _, file in ipairs(LOCALE_FILES) do
     local raw = readAll(file)
     check("C: no BOM " .. file, raw and raw:sub(1, 3) ~= "\239\187\191")
 end
@@ -305,15 +518,37 @@ check("D: critical misskey rename complete", mainText:find("misskey", 1, true) =
 --------------------------------------------------------------------------------
 -- E. Version metadata consistency.
 --------------------------------------------------------------------------------
+-- One spelling, one source of truth. The version lives in the .toc files
+-- (that is what the AddOn list shows); the CHANGELOG heading and the in-game
+-- banner must agree with it. The expected version is DERIVED from the .toc
+-- files rather than hard-coded here, so a release bump cannot half-apply and
+-- leave the gate verifying a stale constant: the gate fails if the surfaces
+-- disagree with each other, which is the property that actually matters.
 local tocs = { "ClassicFCT-Vanilla.toc", "ClassicFCT-TBC.toc", "ClassicFCT-Titan.toc",
     "ClassicFCT-Forever.toc", "ClassicFCT-Mainline.toc" }
+local tocVersions = {}
 for _, toc in ipairs(tocs) do
     local text = readAll(toc) or ""
-    check("E: " .. toc .. " version M0.88", text:find("## Version: M0.88", 1, true) ~= nil)
+    local ver = text:match("## Version:%s*(%S+)")
+    tocVersions[toc] = ver
+    local _, versionLines = text:gsub("## Version:", "")
+    check("E: " .. toc .. " declares exactly one version", versionLines == 1, "got " .. versionLines)
+    check("E: " .. toc .. " declares a version", ver ~= nil)
+end
+-- The reference version is the one every .toc must agree on.
+local EXPECTED_VERSION = tocVersions[tocs[1]]
+for _, toc in ipairs(tocs) do
+    check("E: " .. toc .. " version " .. tostring(EXPECTED_VERSION),
+        tocVersions[toc] == EXPECTED_VERSION, tostring(tocVersions[toc]))
 end
 local changelog = readAll("CHANGELOG.txt") or ""
-check("E: CHANGELOG starts at 0.88", changelog:sub(1, 4) == "0.88", changelog:sub(1, 30))
-check("E: main.lua banner shows 0.88", mainText:find("0.88    Oct 17, 2026", 1, true) ~= nil)
+local changelogVersion = changelog:match("^(%S+)")
+check("E: CHANGELOG starts with " .. tostring(EXPECTED_VERSION),
+    changelogVersion == EXPECTED_VERSION, tostring(changelogVersion))
+-- The banner is "<version>    <date>" in main.lua's changelog notice.
+local bannerVersion = mainText:match("\n%s*(%S+)%s+%a+%s+%d+,%s+%d%d%d%d")
+check("E: main.lua banner shows " .. tostring(EXPECTED_VERSION),
+    bannerVersion == EXPECTED_VERSION, tostring(bannerVersion))
 local readme = readAll("README.md") or ""
 check("E: README present", #readme > 500)
 
@@ -369,6 +604,79 @@ for _ in localesXml:gmatch('<Script file=') do localeScripts = localeScripts + 1
 check("F: locales.xml lists 12 scripts", localeScripts == 12, "got " .. localeScripts)
 local presetsXml = readAll("Presets/presets.xml") or ""
 check("F: presets.xml includes ClassicPlus", presetsXml:find("ClassicPlus.lua", 1, true) ~= nil)
+
+--------------------------------------------------------------------------------
+-- G. Warning budget: the shipped sources must stay lint-clean.
+--------------------------------------------------------------------------------
+-- The count is ASSERTED, not merely bounded. Any new warning fails the gate,
+-- so a warning can never be re-introduced silently.
+--
+-- The lint configuration is .luacheckrc at the repo root. It declares the WoW
+-- client globals the addon legitimately uses (the SavedVariables, the slash
+-- command globals and the client APIs) and sets std = "lua51". Without it
+-- luacheck reports ~384 false "accessing undefined variable" warnings on the
+-- shipped sources and the handful of real warnings are invisible in the noise.
+-- The count below therefore also protects the configuration: weakening
+-- .luacheckrc would push the count up and fail this check.
+--
+-- The file count is asserted as well, so a file silently dropped from the
+-- linted set cannot hide a warning.
+--
+-- luacheck is a release requirement: if the tool is not installed the check
+-- FAILS rather than passing silently, because an unverified warning budget is
+-- not a verified warning budget.
+local LUACHECK_MAX_WARNINGS = 0
+local LUACHECK_MAX_ERRORS = 0
+local LUACHECK_FILE_COUNT = 18
+
+check("G: .luacheckrc is present", fileExists(".luacheckrc"))
+
+local function shellQuote(path)
+    return "'" .. tostring(path):gsub("'", "'\\''") .. "'"
+end
+
+local quotedFiles = {}
+for _, path in ipairs(LUA_FILES) do quotedFiles[#quotedFiles + 1] = shellQuote(path) end
+local luacheckCmd = "luacheck --no-color --codes " .. table.concat(quotedFiles, " ") .. " 2>&1"
+local luacheckOut = ""
+local luacheckRan = false
+do
+    local ok, pipe = pcall(io.popen, luacheckCmd)
+    if ok and pipe then
+        luacheckOut = pipe:read("*a") or ""
+        pipe:close()
+        luacheckRan = true
+    end
+end
+check("G: luacheck ran", luacheckRan, "is luacheck installed and on PATH?")
+
+if luacheckRan then
+    local totalWarnings = luacheckOut:match("Total:%s*(%d+)%s*warnings?")
+    local totalErrors = luacheckOut:match("/%s*(%d+)%s*errors?")
+    local totalFiles = luacheckOut:match("in%s*(%d+)%s*files?")
+    check("G: luacheck reported a total", totalWarnings ~= nil,
+        luacheckOut:sub(-400))
+    if totalWarnings then
+        check("G: warnings <= " .. LUACHECK_MAX_WARNINGS,
+            tonumber(totalWarnings) <= LUACHECK_MAX_WARNINGS,
+            "got " .. totalWarnings .. " (budget " .. LUACHECK_MAX_WARNINGS .. ")")
+        check("G: errors = " .. LUACHECK_MAX_ERRORS,
+            tonumber(totalErrors) == LUACHECK_MAX_ERRORS,
+            "got " .. tostring(totalErrors))
+        check("G: " .. LUACHECK_FILE_COUNT .. " shipped files were linted",
+            tonumber(totalFiles) == LUACHECK_FILE_COUNT,
+            "got " .. tostring(totalFiles))
+    end
+    -- Surface the offending lines when the budget is exceeded, so the failure
+    -- is actionable without re-running luacheck by hand.
+    if totalWarnings and tonumber(totalWarnings) > LUACHECK_MAX_WARNINGS then
+        for line in luacheckOut:gmatch("[^\r\n]+") do
+            if line:find("%(W%d+%)") or line:find("%(E%d+%)") then
+                print("      " .. line)
+            end
+        end
+    end
+end
 
 --------------------------------------------------------------------------------
 print("")

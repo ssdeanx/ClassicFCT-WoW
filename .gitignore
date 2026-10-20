@@ -1,1 +1,17 @@
 .vscode/
+
+# Build output (tools/package.sh writes zips and .sha256 files here by default)
+dist/
+*.zip
+*.sha256
+
+# Workshop workspace - agent desks, the shared bench and the operator notes.
+# These are not addon code and must never reach a release zip.
+# bench/* (not bench/) so that the negation below can re-include the gate.
+desks/
+bench/*
+!bench/release-gate.lua
+classroom/
+CAIRN.md
+workshop.md
+hands-up.md

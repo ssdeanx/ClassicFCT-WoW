@@ -237,6 +237,8 @@ CFCT:RegisterLocale("enUS", {
     ["Pet Damage Over Time"] = "Pet Damage Over Time",
     ["Pet Heals Over Time"] = "Pet Heals Over Time",
     -- Dialogs and preset naming
+    ["OK"] = "OK",
+    ["Cancel"] = "Cancel",
     ["Preset Name"] = "Preset Name",
     ["This will overwrite your current configuration. Are you sure?"] = "This will overwrite your current configuration. Are you sure?",
     ["This will overwrite your the selected preset. Are you sure?"] = "This will overwrite your the selected preset. Are you sure?",
@@ -257,4 +259,14 @@ CFCT:RegisterLocale("enUS", {
     ["Preset '%s' already exists."] = "Preset '%s' already exists.",
     ["Could not register event %s: %s"] = "Could not register event %s: %s",
     ["Combat text is unavailable on this client: the modern combat log is restricted and no public API exposes outgoing damage. Options, presets and previews still work."] = "Combat text is unavailable on this client: the modern combat log is restricted and no public API exposes outgoing damage. Options, presets and previews still work.",
+    -- Runtime diagnostics
+    ["no icon could be resolved for '%s' - the number is shown without an icon."] = "no icon could be resolved for '%s' - the number is shown without an icon.",
+    ["unknown merge interval mode '%s' - '%s' is used instead."] = "unknown merge interval mode '%s' - '%s' is used instead.",
+    ["a colour value in the configuration could not be parsed - opaque white is used instead."] = "a colour value in the configuration could not be parsed - opaque white is used instead.",
+    ["the preset '%s' does not exist - nothing was loaded."] = "the preset '%s' does not exist - nothing was loaded.",
+    ["the preset '%s' does not exist - nothing was saved."] = "the preset '%s' does not exist - nothing was saved.",
+    ["the preset '%s' does not exist - nothing was renamed."] = "the preset '%s' does not exist - nothing was renamed.",
+    ["character-specific configuration enabled - the current settings were copied to this character."] = "character-specific configuration enabled - the current settings were copied to this character.",
+    ["character-specific configuration enabled - the saved settings for this character were restored."] = "character-specific configuration enabled - the saved settings for this character were restored.",
+    ["account-wide configuration enabled - the account settings were restored."] = "account-wide configuration enabled - the account settings were restored.",
 })

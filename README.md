@@ -7,6 +7,16 @@ laid out so that heavy combat stays readable.
 
 Use `/cfct` to open the options interface.
 
+## Screenshots
+
+> **Placeholders - these image files do not exist yet.** The paths below mark where the
+> screenshots belong. The images still have to be captured and added under `docs/screenshots/`
+> before the project is published.
+
+![Options panel](docs/screenshots/options-panel.png)
+![Combat text in action](docs/screenshots/combat-text.png)
+![Preset comparison](docs/screenshots/preset-comparison.png)
+
 ## Supported clients
 
 | Client | Interface | Combat text |
@@ -113,9 +123,33 @@ text) is never translated.
   reporting a client-specific problem, include the output of
   `/run print(WOW_PROJECT_ID, select(4, GetBuildInfo()))`.
 
+## License
+
+ClassicFCT is licensed under the **GNU General Public License v3.0 only** (`GPL-3.0-only`).
+The full license text is in [`LICENSE`](LICENSE).
+
+The addon redistributes three vendored libraries under `Libs/`, each under its own terms:
+
+- **LibStub** - public domain.
+- **LibSharedMedia-3.0** - **LGPL v2.1**. The full text is in
+  [`LICENSE-LGPL-2.1.txt`](LICENSE-LGPL-2.1.txt). The vendored copy is unmodified and the
+  library is replaceable, so a modified LGPL v2.1 version can be substituted without affecting
+  this addon's own GPL v3 code.
+- **CallbackHandler-1.0** - **its license is not confirmed yet.** The vendored file carries no
+  license header, so the exact terms are still being checked against the upstream project. This
+  is an open compliance item, not a claim that the library is unlicensed.
+
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) has the full third-party detail, including
+the upstream sources.
+
 ## Credits and links
 
 - Author: `Discord @tehypno` (addon metadata).
 - Contributor credits are listed per release in `CHANGELOG.txt`.
+- Project page: [ClassicFCT on CurseForge](https://www.curseforge.com/wow/classic/addons/classicfct)
+  - *placeholder link - the CurseForge project page is not published yet.*
+- Issues / support: [github.com/ssdeanx/ClassicFCT-WoW/issues](https://github.com/ssdeanx/ClassicFCT-WoW/issues).
+- Source: [github.com/ssdeanx/ClassicFCT-WoW](https://github.com/ssdeanx/ClassicFCT-WoW).
 - [ClassicFCT on YouTube](http://www.youtube.com/watch?v=gNMEFNtfaEQ) - feature overview.
 - Support development: [ko-fi](https://ko-fi.com/Y8Y66XZTG).
+- License: GPL-3.0-only - see [License](#license).

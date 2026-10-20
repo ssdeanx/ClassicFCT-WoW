@@ -2,7 +2,7 @@
 -- Machine-assisted translation; native review recommended.
 -- Source note: combat/UI terms cross-checked against official client terminology
 -- (per-locale GlobalStrings dumps, tekkub/wow-globalstrings GlobalStrings/ruRU.lua).
--- Missing keys fall back to the enUS table; "Pow" and "init" intentionally stay enUS.
+-- Missing keys fall back to the enUS table.
 local _, CFCT = ...
 
 CFCT:RegisterLocale("ruRU", {
@@ -181,6 +181,7 @@ CFCT:RegisterLocale("ruRU", {
     ["Every Nameplate"] = "Все таблички",
     ["First Event"] = "Первое событие",
     ["Last Event"] = "Последнее событие",
+    ["Pow"] = "Всплеск",
     ["Fade In"] = "Появление",
     ["Fade Out"] = "Исчезновение",
     ["Scroll"] = "Прокрутка",
@@ -240,6 +241,8 @@ CFCT:RegisterLocale("ruRU", {
     ["Pet Damage Over Time"] = "Периодический урон питомца",
     ["Pet Heals Over Time"] = "Периодическое лечение питомца",
     -- Dialogs and preset naming
+    ["OK"] = "ОК",
+    ["Cancel"] = "Отмена",
     ["Preset Name"] = "Название профиля",
     ["This will overwrite your current configuration. Are you sure?"] = "Текущая конфигурация будет перезаписана. Продолжить?",
     ["This will overwrite your the selected preset. Are you sure?"] = "Выбранный профиль будет перезаписан. Продолжить?",
@@ -251,6 +254,7 @@ CFCT:RegisterLocale("ruRU", {
     ["Default: %s"] = "По умолчанию: %s",
     ["Empty: Attack a Dummy"] = "Пусто: атакуйте манекен",
     ["%s |cff808080built-in|r"] = "%s |cff808080встроенный|r",
+    ["init"] = "начало",
     -- Log / chat messages
     ["%s preset loaded."] = "Профиль %s загружен.",
     ["Config saved to %s preset."] = "Конфигурация сохранена в профиль %s.",
@@ -259,4 +263,14 @@ CFCT:RegisterLocale("ruRU", {
     ["Preset '%s' already exists."] = "Профиль '%s' уже существует.",
     ["Could not register event %s: %s"] = "Не удалось зарегистрировать событие %s: %s",
     ["Combat text is unavailable on this client: the modern combat log is restricted and no public API exposes outgoing damage. Options, presets and previews still work."] = "Боевой текст недоступен на этом клиенте: современный журнал боя ограничен, и ни один публичный API не предоставляет исходящий урон. Настройки, профили и предпросмотр по-прежнему работают.",
+    -- Runtime diagnostics
+    ["no icon could be resolved for '%s' - the number is shown without an icon."] = "Не удалось получить значок для '%s' - число отображается без значка.",
+    ["unknown merge interval mode '%s' - '%s' is used instead."] = "Неизвестный режим интервала объединения '%s' - вместо него используется '%s'.",
+    ["a colour value in the configuration could not be parsed - opaque white is used instead."] = "Не удалось разобрать значение цвета в конфигурации - вместо него используется непрозрачный белый.",
+    ["the preset '%s' does not exist - nothing was loaded."] = "Профиль '%s' не существует - ничего не загружено.",
+    ["the preset '%s' does not exist - nothing was saved."] = "Профиль '%s' не существует - ничего не сохранено.",
+    ["the preset '%s' does not exist - nothing was renamed."] = "Профиль '%s' не существует - ничего не переименовано.",
+    ["character-specific configuration enabled - the current settings were copied to this character."] = "Включена конфигурация для конкретного персонажа - текущие настройки скопированы для этого персонажа.",
+    ["character-specific configuration enabled - the saved settings for this character were restored."] = "Включена конфигурация для конкретного персонажа - сохранённые настройки этого персонажа восстановлены.",
+    ["account-wide configuration enabled - the account settings were restored."] = "Включена общая для аккаунта конфигурация - настройки аккаунта восстановлены.",
 })
