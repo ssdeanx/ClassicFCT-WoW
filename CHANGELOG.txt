@@ -18,6 +18,12 @@ M0.89   Oct 20, 2026
       fallback to the older one, so the addon keeps working as those older APIs are retired.
       A missing combat log is now reported once instead of failing silently.
     - Fixed a spell event with no name being shown as an auto-attack.
+    - Fixed the crit flag being read as "true" for a hit that was not a crit when the client
+      delivers it as a number. Every hit would then be styled as a crit and the small-crit
+      demotion would apply to all of them. The flag is now read as a boolean, so a client
+      that delivers 0/1 and one that delivers true/false both behave correctly.
+    - Fixed "Max Simultaneous Numbers" leaving more numbers on screen than the limit allows
+      when the limit was lowered while numbers were already showing.
     - Fixed the preview numbers polluting the damage average while the options panel was open.
     - Fixed the "Hide Blizzard Combat Text" state not re-syncing while no numbers were on screen.
     - Numbers now use the client's own text scaling and measurement helpers instead of relying on
@@ -67,6 +73,12 @@ M0.89   Oct 20, 2026
     - The release check now covers the locale tables, the version metadata, the client flavor
       matrix and the packaging references, and derives the expected locale key count and the
       expected version from the files themselves instead of hard-coding them.
+    - Added a behavioural test suite that drives the addon against a stub client: the combat
+      text pipeline, the secret-value guard, the merge rules, the number limit and the saved
+      configuration are now covered on all five supported clients, where before they had no
+      automated coverage at all.
+    - Added a mutation check that breaks one protected behaviour at a time and asserts the test
+      suite catches each one, so a passing test run cannot be mistaken for a working addon.
 
 0.88   Oct 17, 2026
 

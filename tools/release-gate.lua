@@ -1,11 +1,13 @@
--- bench/release-gate.lua
--- Release verification gate for ClassicFCT. NOT shipped (bench/ is workspace; excluded from zips).
+-- tools/release-gate.lua
+-- Release verification gate for ClassicFCT. NOT shipped (tools/ is excluded
+-- from the release zip by the explicit manifest in tools/package.sh).
 -- Run from the repo root with the Lua 5.1 interpreter:
---     lua5.1 bench/release-gate.lua
+--     lua5.1 tools/release-gate.lua
 -- Covers: syntax of every loadable file, client registration matrix (5 vectors),
 -- restricted-client notice, locale table integrity (keys, order, placeholders, BOM),
 -- regression guards for the rolling-average fix and off-target semantics, version
--- metadata consistency, and .toc/.xml packaging references.
+-- metadata consistency, .toc/.xml packaging references, the warning budget,
+-- and the behavioural test suite (tools/behavior-tests.lua).
 
 local failures = 0
 local checks = 0
@@ -120,7 +122,7 @@ local function newEnv(vector)
     env.max = math.max
     env.strlower = string.lower
     env.strupper = string.upper
-    env.unpack = table.unpack
+    env.unpack = unpack
     env.bit = {
         -- Pure-Lua band so this file parses under Lua 5.1 (no bitwise operators).
         band = function(a, b)
@@ -150,8 +152,8 @@ end
 for _, vector in ipairs(VECTORS) do
     local env = newEnv(vector)
     local CFCT = { _log = {}, _testMode = false }
-    CFCT.Log = function(self, msg) table.insert(self._log, msg or "") end
-    CFCT.L = function(key, ...) return key end
+    CFCT.Log = function(self, msg) table.insert(self._log, msg or "") end -- luacheck: ignore 212
+    CFCT.L = function(key, ...) return key end -- luacheck: ignore 212
     CFCT.Config = { animDuration = 1, OnLoad = function() end }
     CFCT.ConfigPanel = { IsVisible = function() return false end }
 
@@ -207,8 +209,8 @@ local function runCLEUWithoutProbe(vector)
     env.COMBATLOG_OBJECT_AFFILIATION_MINE = nil
 
     local CFCT = { _log = {}, _testMode = false }
-    CFCT.Log = function(self, msg) table.insert(self._log, msg or "") end
-    CFCT.L = function(key, ...) return key end
+    CFCT.Log = function(self, msg) table.insert(self._log, msg or "") end -- luacheck: ignore 212
+    CFCT.L = function(key, ...) return key end -- luacheck: ignore 212
     -- The config needs the spell-icon fields the dispatch path reads, or the
     -- handler raises on a nil aspect ratio before the observable is reached.
     CFCT.Config = {
@@ -270,8 +272,8 @@ local function runCLEUWithWorkingProbe(vector)
     env.C_CombatLog = { GetCurrentEventInfo = env.CombatLogGetCurrentEventInfo }
     env.Enum = { CombatLogObject = { TypeGuardian = 8, TypePet = 16, AffiliationMine = 1 } }
     local CFCT = { _log = {}, _testMode = false }
-    CFCT.Log = function(self, msg) table.insert(self._log, msg or "") end
-    CFCT.L = function(key, ...) return key end
+    CFCT.Log = function(self, msg) table.insert(self._log, msg or "") end -- luacheck: ignore 212
+    CFCT.L = function(key, ...) return key end -- luacheck: ignore 212
     CFCT.Config = {
         animDuration = 1, OnLoad = function() end, mergeEvents = false,
         spellIconAspectRatio = 1, spellIconZoom = 1,
@@ -359,7 +361,7 @@ local MIN_LOCALE_KEYS = 200
 local localeTables = {}
 local localeOrder = {}
 local fakeCFCT = {}
-function fakeCFCT:RegisterLocale(code, tbl)
+function fakeCFCT:RegisterLocale(code, tbl) -- luacheck: ignore 212
     localeTables[code] = tbl
     table.insert(localeOrder, code)
 end
@@ -391,17 +393,16 @@ check("C: enUS source parses keyed entries", enSourceCount > 0, "got " .. enSour
 check("C: enUS key count above the sanity floor", enSourceCount >= MIN_LOCALE_KEYS,
     "got " .. enSourceCount .. " (floor " .. MIN_LOCALE_KEYS .. ")")
 
-local enUSSet, enUSIndex = {}, {}
-for i, k in ipairs(enSourceOrder) do
+local enUSSet = {}
+for _, k in ipairs(enSourceOrder) do
     enUSSet[k] = true
-    enUSIndex[k] = i
 end
 
 local enUS = localeTables["enUS"]
 check("C: enUS registered", enUS ~= nil)
 if enUS then
     local n = 0
-    for k in pairs(enUS) do n = n + 1 end
+    for _ in pairs(enUS) do n = n + 1 end
     check("C: enUS registered key count matches the source", n == enSourceCount,
         "got " .. n .. ", source " .. enSourceCount)
     -- enUS is the identity table: every value equals its key, because the key
@@ -673,6 +674,140 @@ if luacheckRan then
         for line in luacheckOut:gmatch("[^\r\n]+") do
             if line:find("%(W%d+%)") or line:find("%(E%d+%)") then
                 print("      " .. line)
+            end
+        end
+    end
+end
+
+-- The verification tools are linted too, with their own configuration
+-- (tools/.luacheckrc). They are not shipped, but a harness that does not
+-- compile is a test suite that silently proves nothing, and linting them
+-- catches the stub-signature slips that a runtime assertion may not.
+local TOOL_LUACHECK_FILE_COUNT = 3
+local toolFiles = { "tools/harness.lua", "tools/behavior-tests.lua", "tools/release-gate.lua" }
+local quotedToolFiles = {}
+for _, path in ipairs(toolFiles) do quotedToolFiles[#quotedToolFiles + 1] = shellQuote(path) end
+local toolLuacheckCmd = "luacheck --config tools/.luacheckrc --no-color --codes "
+    .. table.concat(quotedToolFiles, " ") .. " 2>&1"
+local toolLuacheckOut = ""
+local toolLuacheckRan = false
+do
+    local ok, pipe = pcall(io.popen, toolLuacheckCmd)
+    if ok and pipe then
+        toolLuacheckOut = pipe:read("*a") or ""
+        pipe:close()
+        toolLuacheckRan = true
+    end
+end
+check("G: the verification tools were linted", toolLuacheckRan,
+    "is luacheck installed and on PATH?")
+if toolLuacheckRan then
+    local toolWarnings = toolLuacheckOut:match("Total:%s*(%d+)%s*warnings?")
+    local toolErrors = toolLuacheckOut:match("/%s*(%d+)%s*errors?")
+    local toolFilesLinted = toolLuacheckOut:match("in%s*(%d+)%s*files?")
+    check("G: the verification tools have no warnings", tonumber(toolWarnings) == 0,
+        "got " .. tostring(toolWarnings) .. " -- " .. toolLuacheckOut:sub(-400))
+    check("G: the verification tools have no errors", tonumber(toolErrors) == 0,
+        "got " .. tostring(toolErrors))
+    check("G: " .. TOOL_LUACHECK_FILE_COUNT .. " verification tools were linted",
+        tonumber(toolFilesLinted) == TOOL_LUACHECK_FILE_COUNT,
+        "got " .. tostring(toolFilesLinted))
+end
+
+---------------------------------------------------------------------------------
+-- I. Behaviour suite: the addon's core paths must BEHAVE, not merely load.
+---------------------------------------------------------------------------------
+--- The gate above proves the addon loads, that its metadata is consistent and
+--- that it is lint-clean. It does not prove the addon behaves: the combat-text
+--- pipeline, the secret-value guard, the merge rules and the config
+--- persistence had no automated coverage at all (findings TC-04/05/06).
+---
+--- The behaviour suite (tools/behavior-tests.lua) drives the real addon code
+--- through a stub client (tools/harness.lua) and asserts observable
+--- behaviour on all five supported clients.
+---
+--- The suite is a RELEASE REQUIREMENT: if it cannot run, the check FAILS
+--- rather than passing silently. A verification that did not run is not a
+--- verification.
+---
+--- The suite's own non-vacuity is proven by tools/mutation-tests.sh, which
+--- breaks a protected behaviour and asserts the suite catches it.
+local BEHAVIOUR_MIN_CHECKS = 50
+check("I: tools/behavior-tests.lua is present", fileExists("tools/behavior-tests.lua"))
+check("I: tools/harness.lua is present", fileExists("tools/harness.lua"))
+
+local behaviourCmd = "lua5.1 tools/behavior-tests.lua 2>&1"
+local behaviourOut = ""
+local behaviourRan = false
+do
+    local ok, pipe = pcall(io.popen, behaviourCmd)
+    if ok and pipe then
+        behaviourOut = pipe:read("*a") or ""
+        pipe:close()
+        behaviourRan = true
+    end
+end
+check("I: the behaviour suite ran", behaviourRan, "is lua5.1 installed and on PATH?")
+
+if behaviourRan then
+    local bChecks, bFailures = behaviourOut:match("checks=(%d+)%s+failures=(%d+)")
+    check("I: the behaviour suite reported a summary", bChecks ~= nil,
+        behaviourOut:sub(-500))
+    if bChecks then
+        check("I: the behaviour suite ran at least " .. BEHAVIOUR_MIN_CHECKS .. " checks",
+            tonumber(bChecks) >= BEHAVIOUR_MIN_CHECKS, "got " .. tostring(bChecks))
+        check("I: the behaviour suite has no failures",
+            tonumber(bFailures) == 0, "got " .. tostring(bFailures) .. " failures")
+        -- Surface the failing checks when there are any, so the failure is
+        -- actionable without re-running the suite by hand.
+        if tonumber(bFailures) > 0 then
+            for line in behaviourOut:gmatch("[^\r\n]+") do
+                if line:find("FAIL", 1, true) then print("      " .. line) end
+            end
+        end
+    end
+end
+
+---------------------------------------------------------------------------------
+-- J. Mutation proof: the behaviour suite must not be vacuous.
+---------------------------------------------------------------------------------
+--- A test suite that passes on broken code proves nothing. The mutation
+--- runner breaks one protected behaviour at a time in a throwaway copy of the
+--- addon and asserts the behaviour suite FAILS for each one. If a mutation
+--- survives, the suite has a blind spot - and this check fails.
+---
+--- This is the check that makes section I meaningful: it proves the suite
+--- would notice a regression rather than merely that it currently passes.
+local MUTATION_MAX_SURVIVORS = 0
+check("J: tools/mutation-tests.sh is present", fileExists("tools/mutation-tests.sh"))
+
+local mutationCmd = "bash tools/mutation-tests.sh 2>&1"
+local mutationOut = ""
+local mutationRan = false
+do
+    local ok, pipe = pcall(io.popen, mutationCmd)
+    if ok and pipe then
+        mutationOut = pipe:read("*a") or ""
+        pipe:close()
+        mutationRan = true
+    end
+end
+check("J: the mutation runner ran", mutationRan, "is bash available?")
+
+if mutationRan then
+    -- The runner prints: "=== mutation summary: <caught> caught, <survived> survived ==="
+    local caught, survived = mutationOut:match("(%d+)%s+caught,%s*(%d+)%s+survived")
+    check("J: the mutation runner reported a summary", caught ~= nil,
+        mutationOut:sub(-500))
+    if caught then
+        check("J: every mutation was caught", tonumber(survived) <= MUTATION_MAX_SURVIVORS,
+            tostring(survived) .. " survived")
+        check("J: the mutation runner exercised at least 8 mutations",
+            tonumber(caught) >= 8, "got " .. tostring(caught))
+        -- Surface the survivors, so a blind spot is actionable.
+        if tonumber(survived) > MUTATION_MAX_SURVIVORS then
+            for line in mutationOut:gmatch("[^\r\n]+") do
+                if line:find("SURVIVED", 1, true) then print("      " .. line) end
             end
         end
     end

@@ -7,10 +7,12 @@ dist/
 
 # Workshop workspace - agent desks, the shared bench and the operator notes.
 # These are not addon code and must never reach a release zip.
-# bench/* (not bench/) so that the negation below can re-include the gate.
+#
+# tools/ is NOT ignored: the release gate, the behaviour suite and the
+# mutation runner are tracked verification code. They are still excluded from
+# the release zip, by the explicit manifest in tools/package.sh.
 desks/
 bench/*
-!bench/release-gate.lua
 classroom/
 CAIRN.md
 workshop.md

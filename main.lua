@@ -64,6 +64,24 @@ local function IsSecretValue(v)
     return res == 1
 end
 
+-- The crit flag arrives from the combat log as a BOOLEAN on every supported
+-- client: Blizzard's own parser tests it with `if critical then`
+-- (Blizzard_CombatLogBase/CombatLogUtil.lua on every branch), which only
+-- works for a boolean or nil.
+--
+-- Lua, however, treats the NUMBER 0 as true. A client that delivered 0/1
+-- would therefore make EVERY hit read as a crit: the numbers would all be
+-- styled as crits, the small-crit demotion would apply to all of them, and
+-- the crit-specific filters would swallow non-crit hits. The flag is
+-- normalised to a real boolean here so the value cannot be misread whichever
+-- form a client delivers.
+--
+-- This runs AFTER the secret-value guard above: comparing a secret value
+-- raises, and a secret value must never be inspected.
+local function IsCritFlag(value)
+    return (value == true) or (value == 1)
+end
+
 -- Imported explicitly instead of relying on the client exposing math/string
 -- helpers as globals (sqrt/min/max/strlower/strupper were implicit globals).
 -- The imports are split over three statements purely for line length; the name
@@ -1038,12 +1056,23 @@ local function DispatchText(guid, event, text, amount, spellid, spellicon, perio
     end
 
     if (fctConfig.maxDisplayed and fctConfig.maxDisplayed > 0) then
-        if (#anim >= fctConfig.maxDisplayed) then
+        -- The limit is a CEILING, so the number of live numbers has to land
+        -- on it exactly - not above it.
+        --
+        -- Releasing a single oldest number per dispatch is enough while the
+        -- count is at or below the limit, because the check runs before every
+        -- insert. It is NOT enough when the limit is LOWERED at runtime (the
+        -- options panel applies a new "Max Simultaneous Numbers" immediately)
+        -- while more numbers are on screen than the new limit allows: one
+        -- release per dispatch left the screen above the new limit, and the
+        -- surplus was only worked off one number at a time. Releasing until
+        -- the count is under the limit brings the screen back to the ceiling
+        -- in a single dispatch.
+        while (#anim >= fctConfig.maxDisplayed) do
             local oldest = anim[#anim]
-            if oldest then
-                oldest:Release()
-                tremove(anim)
-            end
+            if not oldest then break end
+            oldest:Release()
+            tremove(anim)
         end
     end
     tinsert(anim, 1, GrabFontString():Init({
@@ -1770,6 +1799,7 @@ end
 -- either key.
 function f:DamageEvent(guid, spellid, amount, periodic, crit, pet, school, spellIdNumeric) -- luacheck: ignore 212
     if IsSecretValue(amount) or IsSecretValue(spellid) or IsSecretValue(school) or IsSecretValue(guid) or IsSecretValue(crit) then return end
+    crit = IsCritFlag(crit)
     -- A classic client can report spell id 0 with an empty name; an empty id is
     -- as unusable as a missing one.
     --
@@ -1812,6 +1842,7 @@ end
 -- WoW event handler: the frame receiver is part of the calling convention.
 function f:HealingEvent(guid, spellid, amount, periodic, crit, pet, school, spellIdNumeric) -- luacheck: ignore 212
     if IsSecretValue(amount) or IsSecretValue(spellid) or IsSecretValue(school) or IsSecretValue(guid) or IsSecretValue(crit) then return end
+    crit = IsCritFlag(crit)
     local event = "heal"
     local spellicon = spellid and SpellIconText(spellid) or ""
     CacheEvent(guid, event, amount, nil, spellid, spellicon, periodic, crit, false, pet, school, nil, spellIdNumeric)

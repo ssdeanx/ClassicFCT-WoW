@@ -146,6 +146,16 @@ Character-level: `ClassicFCTCharConfig`, `ClassicFCTCharVars`, `ClassicFCTCharTa
 - Miss filters and merging depend on spell ids; preserve the legacy-client `spellid == 0 -> spellname` handling (Era, TBC Anniversary, WotLK Titanforge).
 - The changelog string inside `ADDON_LOADED` in `main.lua` and `## Version` in every `.toc` are version metadata; update both when cutting a release. For this repo's multi-client shipping, compare against the supported-client table above before editing interface versions.
 - `desks/`, `bench/`, and `classroom/` are agent workspace, not addon code: never reference them from any `.toc` load list, and exclude them from release zips. Same exclusion applies to `CAIRN.md`, `workshop.md`, and `hands-up.md`.
+- `tools/` is verification code, not addon code: it is excluded from release zips by the explicit manifest in `tools/package.sh`, and nothing in a `.toc` may reference it. `tools/` IS tracked in git, unlike `bench/`.
+- **The crit flag is a boolean, and Lua's truthiness is the trap.** The client delivers `critical` as `true`/`false` (Blizzard's own parser tests it with `if critical then` on every branch). Lua treats the NUMBER `0` as *true*, so a client that delivered `0/1` would make every hit read as a crit. `IsCritFlag()` in `main.lua` normalises the value to a real boolean, and it must be called only AFTER the `IsSecretValue` guard — comparing a secret value raises, and a secret value must never be inspected. Do not remove the normalisation and do not move it above the guard.
+
+## Verification (`tools/`)
+
+- `tools/release-gate.lua` is the release gate (178 checks). Run it from the repo root: `lua5.1 tools/release-gate.lua`. It asserts, rather than merely bounds, the warning budget and the file counts, so a warning or a dropped file cannot re-enter silently. It shells out to `luacheck` and to the behaviour suite; if either tool is missing the check FAILS instead of passing silently.
+- `tools/behavior-tests.lua` is the behavioural suite (63 checks) and `tools/harness.lua` is the stub client it drives. The suite covers the combat-text pipeline, the secret-value guard in all four probe modes, the merge rules, the number limit and the saved configuration, across all five supported clients. It loads the addon in the real order (`presets.lua` -> preset files -> `config.lua` -> `main.lua`) and calls `CFCT.Config:OnLoad()` before anything else: the config VALUES only exist after `OnLoad` has run, which is what the client's `ADDON_LOADED` does.
+- `tools/mutation-tests.sh` proves the suite is not vacuous. Each file in `tools/mutations/` breaks one protected behaviour; the runner asserts the suite FAILS for each one. **A mutation that survives is a blind spot in the suite** — add a check, or tighten the mutation. Add a mutation with every new protected behaviour.
+- `tools/.luacheckrc` lints the verification tools with their own configuration (they use `io` and `os`, which the addon sources must not). The gate asserts the tools are lint-clean too.
+- The tools' harness must model the client faithfully: the combat-log API is resolved ONCE and cached, so a test must swap a *mutable payload*, never the function. The clock must be mutable from the start, because `main.lua` captures `GetTime` into a local at load time.
 
 ## Workshop (desks, bench, cairn)
 

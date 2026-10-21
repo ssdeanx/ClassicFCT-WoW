@@ -100,7 +100,8 @@ MANIFEST=(
 #    appear in the manifest.
 # ----------------------------------------------------------------------------
 FORBIDDEN=( "desks/" "bench/" "classroom/" "CAIRN.md" "workshop.md" "hands-up.md"
-            "AGENTS.md" ".git/" ".vscode/" ".luarc.json" ".gitignore" ".gitattributes" )
+            "tools/" "AGENTS.md" ".git/" ".vscode/" ".luarc.json" ".gitignore"
+            ".gitattributes" )
 
 missing=0
 for f in "${MANIFEST[@]}"; do
@@ -180,7 +181,7 @@ if [[ "$top_levels" != "$ADDON_DIR" ]]; then
     exit 1
 fi
 
-if unzip -Z1 "$ZIP" | grep -qE '(^|/)(desks|bench|classroom|\.git|\.vscode)/'; then
+if unzip -Z1 "$ZIP" | grep -qE '(^|/)(desks|bench|classroom|tools|\.git|\.vscode)/'; then
     echo "ERROR: workspace path present in package" >&2
     exit 1
 fi
