@@ -71,13 +71,14 @@ CFCT.CVarHealing = CVarHealing
 local UsesNewSettingsInterface = (Settings and (type(Settings.RegisterAddOnCategory) == 'function'))
 local UsesNewColorPicker = OpacitySliderFrame == nil or ((type(OpacitySliderFrame.GetParent) == 'function') and OpacitySliderFrame:GetParent():GetName() ~= "ColorPickerFrame")
 local DefaultPresets = CFCT:GetDefaultPresets()
-local DefaultConfig = DefaultPresets["Mists of Pandaria"]
+-- The default preset is "Classic", on every client.
+local DefaultConfig = DefaultPresets["Classic"]
 if (type(DefaultConfig) ~= 'table') then
     -- The ENTIRE config schema (every migration default and every widget default) is this
     -- one preset table. Name the failed preset here, where the failure is, instead of dying
     -- much later inside the config UI builder with an unrelated error. The preset name and
     -- the load order are load-bearing - see AGENTS.md "Load order".
-    print("ClassicFCT: built-in preset \"Mists of Pandaria\" is missing - the config schema cannot be loaded.")
+    print("ClassicFCT: built-in preset \"Classic\" is missing - the config schema cannot be loaded.")
 end
 local DefaultVars = {
     enabled = true,
@@ -1670,8 +1671,14 @@ ConfigPanel:CreateSlider(L("Max Simultaneous Numbers"),
     animDurationSlider, "LEFT", "RIGHT", 16, 0, 0, 200, 1, DefaultConfig.maxDisplayed, "Config.maxDisplayed")
 local textPosOptionsHeader = ConfigPanel:CreateHeader(L("Text Position Options"), "GameFontNormalLarge", headerGeneralSettings, "TOPLEFT", "BOTTOMLEFT", 0, -64)
 
-local attachModeHeader = ConfigPanel:CreateHeader(L("Attach Text To"), "GameFontHighlightSmall", textPosOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 20, -16)
-local attachModeDropDown = ConfigPanel:CreateDropDownMenu(L("Attach Mode"), "", attachModeHeader, "LEFT", "LEFT", 64, -3, AttachModesMenu, "Config.attachMode")
+-- Own row at the top of the section, above "Prevent Text Overlap".
+ConfigPanel:CreateCheckbox(L("Dim Off-Target Text"),
+    L("Dim numbers for units other than your current target"), textPosOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 0, -24,
+    DefaultConfig.offTarget.enabled, "Config.offTarget.enabled")
+
+local attachModeHeader = ConfigPanel:CreateHeader(L("Attach Text To"), "GameFontHighlightSmall", textPosOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 20, -54)
+-- Own row UNDER the header text, so the label is never drawn over.
+local attachModeDropDown = ConfigPanel:CreateDropDownMenu(L("Attach Mode"), "", attachModeHeader, "TOPLEFT", "BOTTOMLEFT", 0, -16, AttachModesMenu, "Config.attachMode")
 attachModeDropDown.middle:SetWidth(110)
 
 local fallbackCheckbox = ConfigPanel:CreateCheckbox(L("Attachment Fallback"),
@@ -1683,25 +1690,12 @@ local overlapCheckbox = ConfigPanel:CreateCheckbox(L("Prevent Text Overlap"),
 
 ConfigPanel:CreateCheckbox(L("Nameplates In Front"), L("Show text behind the nameplates"), fallbackCheckbox, "TOPLEFT",
     "BOTTOMLEFT", 0, 0, DefaultConfig.dontOverlapNameplates, "Config.dontOverlapNameplates")
-local inheritNameplatesCheckbox = ConfigPanel:CreateCheckbox(L("Inherit From Nameplates"),
+ConfigPanel:CreateCheckbox(L("Inherit From Nameplates"),
     L("Text inherits some atributes from nameplates, like visibility and scale"), overlapCheckbox, "TOPLEFT",
     "BOTTOMLEFT", 0, 0, DefaultConfig.inheritNameplates, "Config.inheritNameplates")
--- Off-target dimming. The CHECKBOX stays here, in the Text Position Options
--- section, but the two sliders that control the dimming live at the BOTTOM of
--- the panel.
---
--- They used to sit directly under this checkbox, in the free right-hand
--- column. That column is the same column the "Screen Center Text", "Nameplate
--- Text" and "Anti-Overlap" sliders use for their second half, so the off-target
--- sliders were drawn straight over those sliders' labels and value boxes: the
--- panel could not be read, and the settings could not be checked.
-ConfigPanel:CreateCheckbox(L("Dim Off-Target Text"),
-    L("Dim numbers for units other than your current target"), inheritNameplatesCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, 0,
-    DefaultConfig.offTarget.enabled, "Config.offTarget.enabled")
-
-
+-- Follows the dropdown, so the moved dropdown can never land on it.
 local areaSliderX = ConfigPanel:CreateSlider(L("Screen Center Text X Offset"), L("Horizontal offset of animation area"),
-    attachModeHeader, "TOPLEFT", "BOTTOMLEFT", 0, -48, -700, 700, 1, DefaultConfig.areaX, "Config.areaX")
+    attachModeDropDown, "TOPLEFT", "BOTTOMLEFT", 0, -40, -700, 700, 1, DefaultConfig.areaX, "Config.areaX")
 ConfigPanel:CreateSlider(L("Screen Center Text Y Offset"), L("Vertical offset of animation area"), areaSliderX, "LEFT", "RIGHT", 16, 0, -400, 400, 1, DefaultConfig.areaY, "Config.areaY")
 local areaSliderNX = ConfigPanel:CreateSlider(L("Nameplate Text X Offset"), L("Horizontal offset of animation area"),
     areaSliderX, "TOPLEFT", "BOTTOMLEFT", 0, -28, -400, 400, 1, DefaultConfig.areaNX, "Config.areaNX")
@@ -1714,7 +1708,7 @@ ConfigPanel:CreateSlider(L("Anti-Overlap Vertical Spacing"), L("Vertical spacing
 
 
 -- Spell Icon Options - Credit: https://github.com/akbyrd
-local spellIconOptionsHeader = ConfigPanel:CreateHeader(L("Spell Icon Options"), "GameFontNormalLarge", textPosOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 0, -200)
+local spellIconOptionsHeader = ConfigPanel:CreateHeader(L("Spell Icon Options"), "GameFontNormalLarge", textPosOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 0, -252)
 local iconOffsetSliderX = ConfigPanel:CreateSlider(L("X Offset"), L("Horizontal offset of spell icon"),
     spellIconOptionsHeader, "TOPLEFT", "BOTTOMLEFT", 20, -24, -20, 20, 1, DefaultConfig.spellIconOffsetX,
     "Config.spellIconOffsetX")
