@@ -152,10 +152,21 @@ Character-level: `ClassicFCTCharConfig`, `ClassicFCTCharVars`, `ClassicFCTCharTa
 ## Verification (`tools/`)
 
 - `tools/release-gate.lua` is the release gate (178 checks). Run it from the repo root: `lua5.1 tools/release-gate.lua`. It asserts, rather than merely bounds, the warning budget and the file counts, so a warning or a dropped file cannot re-enter silently. It shells out to `luacheck` and to the behaviour suite; if either tool is missing the check FAILS instead of passing silently.
-- `tools/behavior-tests.lua` is the behavioural suite (63 checks) and `tools/harness.lua` is the stub client it drives. The suite covers the combat-text pipeline, the secret-value guard in all four probe modes, the merge rules, the number limit and the saved configuration, across all five supported clients. It loads the addon in the real order (`presets.lua` -> preset files -> `config.lua` -> `main.lua`) and calls `CFCT.Config:OnLoad()` before anything else: the config VALUES only exist after `OnLoad` has run, which is what the client's `ADDON_LOADED` does.
+- `tools/behavior-tests.lua` is the behavioural suite (71 checks) and `tools/harness.lua` is the stub client it drives. The suite covers the combat-text pipeline, the secret-value guard in all four probe modes, the merge rules, the number limit and the saved configuration, across all five supported clients. It loads the addon in the real order (`presets.lua` -> preset files -> `config.lua` -> `main.lua`) and calls `CFCT.Config:OnLoad()` before anything else: the config VALUES only exist after `OnLoad` has run, which is what the client's `ADDON_LOADED` does.
 - `tools/mutation-tests.sh` proves the suite is not vacuous. Each file in `tools/mutations/` breaks one protected behaviour; the runner asserts the suite FAILS for each one. **A mutation that survives is a blind spot in the suite** — add a check, or tighten the mutation. Add a mutation with every new protected behaviour.
 - `tools/.luacheckrc` lints the verification tools with their own configuration (they use `io` and `os`, which the addon sources must not). The gate asserts the tools are lint-clean too.
 - The tools' harness must model the client faithfully: the combat-log API is resolved ONCE and cached, so a test must swap a *mutable payload*, never the function. The clock must be mutable from the start, because `main.lua` captures `GetTime` into a local at load time.
+- **The combat-log argument layout differs per event type.** Verify any change against Blizzard's own parser (`Blizzard_CombatLog.lua` on every branch) rather than by analogy:
+
+  | event | amount | school | crit | miss type |
+  | :-- | :-- | :-- | :-- | :-- |
+  | `SWING_DAMAGE` | `arg12` | `arg14` | `arg18` | — |
+  | `SPELL_DAMAGE` | `arg15` | `arg14` | `arg21` | — |
+  | `SPELL_HEAL` | `arg15` | `arg14` | `arg18` | — |
+  | `SWING_MISSED` | `arg14` | — | — | `arg12` |
+  | `SPELL_MISSED` | `arg17` | `arg14` | — | `arg15` |
+
+  A swing carries no spell id, so its amount is the FIRST event-specific argument. Reading a spell event's argument positions for a swing (or the reverse) shows the school as a damage number.
 
 ## Workshop (desks, bench, cairn)
 

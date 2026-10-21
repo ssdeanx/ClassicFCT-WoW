@@ -218,6 +218,91 @@ do
 end
 
 -- =============================================================================
+section("Every combat-log branch reads its arguments the way the client sends them")
+-- =============================================================================
+-- The argument layouts differ per event type, and they are verified against
+-- Blizzard's own parser (Blizzard_CombatLog.lua on every branch):
+--
+--   SWING_DAMAGE  arg12=amount arg14=school arg18=critical
+--                 (Blizzard: amount, overkill, school, ... = ...)
+--   SPELL_DAMAGE  arg12=spellId arg13=spellName arg14=school arg15=amount
+--                 arg21=critical
+--                 (Blizzard: amount, overkill, school, ... = select(4, ...))
+--   SPELL_HEAL    arg12=spellId arg13=spellName arg14=school arg15=amount
+--                 arg18=critical
+--                 (Blizzard: amount, overhealing, absorbed, critical = select(4, ...))
+--   SWING_MISSED  arg12=missType arg13=isOffHand arg14=amountMissed
+--   SPELL_MISSED  arg12=spellId arg13=spellName arg14=school arg15=missType
+--                 arg17=amountMissed
+do
+    -- Fires one event and returns the category of the single number it made.
+    local function categoryOf(event, extra)
+        local CFCT, env, ok = loadedEnv({ project = 2, interface = 11509 })
+        if not ok then return nil, "load failed" end
+        CFCT.frame:PLAYER_ENTERING_WORLD()
+        harness.setCLEU(env, harness.cleuPayload(event, "Player-1", "Target-1", extra))
+        harness.fireCLEU(CFCT)
+        harness.tick(CFCT, env, 0.2)
+        local state, count = nil, 0
+        for _, f in pairs(CFCT.Animating) do state = f.state; count = count + 1 end
+        if count ~= 1 then return "expected 1 number, got " .. count end
+        return state and state.cat or "no number"
+    end
+
+    -- A swing carries no spell id: the amount is the FIRST event-specific
+    -- argument, not the fourth. Reading arg15 would show the swing's school
+    -- as if it were a damage number.
+    check("a swing reads its amount from arg12",
+        categoryOf("SWING_DAMAGE", { 250, 0, 1, 0, 0, 0, false, 0, 0, 0 }) == "auto",
+        tostring(categoryOf("SWING_DAMAGE", { 250, 0, 1, 0, 0, 0, false, 0, 0, 0 })))
+    check("a swing's amount is the number that is shown",
+        (function()
+            local CFCT, env, ok = loadedEnv({ project = 2, interface = 11509 })
+            if not ok then return false end
+            CFCT.frame:PLAYER_ENTERING_WORLD()
+            harness.setCLEU(env, harness.cleuPayload("SWING_DAMAGE", "Player-1", "Target-1",
+                { 250, 0, 1, 0, 0, 0, false, 0, 0, 0 }))
+            harness.fireCLEU(CFCT)
+            harness.tick(CFCT, env, 0.2)
+            local texts = harness.liveTexts(CFCT)
+            return tostring(texts[1]):find("250", 1, true) ~= nil
+        end)(), "the swing amount was not shown")
+
+    -- A heal is a different category, and it reads its amount from arg15.
+    check("a heal is filed under the heal category",
+        categoryOf("SPELL_HEAL", { 1234, "Heal", 2, 800, 0, 0, false }) == "heal",
+        tostring(categoryOf("SPELL_HEAL", { 1234, "Heal", 2, 800, 0, 0, false })))
+    check("a heal's amount is the number that is shown",
+        (function()
+            local CFCT, env, ok = loadedEnv({ project = 2, interface = 11509 })
+            if not ok then return false end
+            CFCT.frame:PLAYER_ENTERING_WORLD()
+            harness.setCLEU(env, harness.cleuPayload("SPELL_HEAL", "Player-1", "Target-1",
+                { 1234, "Heal", 2, 800, 0, 0, false }))
+            harness.fireCLEU(CFCT)
+            harness.tick(CFCT, env, 0.2)
+            local texts = harness.liveTexts(CFCT)
+            return tostring(texts[1]):find("800", 1, true) ~= nil
+        end)(), "the heal amount was not shown")
+
+    -- A periodic damage is a damage over time: it gets its own category.
+    check("a periodic damage is filed under the tick category",
+        categoryOf("SPELL_PERIODIC_DAMAGE", { 1234, "Fireball", 4, 90, 0, 0, 0, 0, 0, false })
+            == "spelltick",
+        tostring(categoryOf("SPELL_PERIODIC_DAMAGE", { 1234, "Fireball", 4, 90, 0, 0, 0, 0, 0, false })))
+
+    -- A swing miss carries its miss type FIRST (arg12).
+    check("a swing miss reads its miss type from arg12",
+        categoryOf("SWING_MISSED", { "DODGE", 0, 0 }) == "automiss",
+        tostring(categoryOf("SWING_MISSED", { "DODGE", 0, 0 })))
+
+    -- A spell miss carries the miss type at arg15.
+    check("a spell miss reads its miss type from arg15",
+        categoryOf("SPELL_MISSED", { 1234, "Fireball", 4, "PARRY", 0, 0 }) == "spellmiss",
+        tostring(categoryOf("SPELL_MISSED", { 1234, "Fireball", 4, "PARRY", 0, 0 })))
+end
+
+-- =============================================================================
 section("Merged events: a miss is never merged with a hit")
 -- =============================================================================
 do
@@ -273,6 +358,29 @@ do
             "texts=" .. table.concat(texts, ", "))
         check("the miss is labelled as a Dodge", sawDodge,
             "texts=" .. table.concat(texts, ", "))
+    end
+end
+
+do
+    -- A heal must never be summed into a damage. The merge key carries the
+    -- event type precisely so the two cannot share a bucket.
+    local CFCT, env, ok = loadedEnv({ project = 2, interface = 11509,
+        config = { mergeEvents = true, mergeEventsInterval = 5,
+                   mergeEventsBySpellIcon = false, mergeEventsBySchool = false } })
+    if ok then
+        CFCT.frame:PLAYER_ENTERING_WORLD()
+        harness.setCLEU(env, harness.cleuPayload("SPELL_DAMAGE", "Player-1", "Target-1", {
+            1234, "Fireball", 4, 500, 0, 0, 0, 0, 0, false,
+        }))
+        harness.fireCLEU(CFCT)
+        harness.setCLEU(env, harness.cleuPayload("SPELL_HEAL", "Player-1", "Target-1", {
+            1234, "Heal", 2, 800, 0, 0, false,
+        }))
+        harness.fireCLEU(CFCT)
+        harness.tick(CFCT, env, 6)
+        local texts = harness.liveTexts(CFCT)
+        check("a heal is never summed into a damage", harness.liveCount(CFCT) == 2,
+            "live=" .. harness.liveCount(CFCT) .. " texts=" .. table.concat(texts, ", "))
     end
 end
 

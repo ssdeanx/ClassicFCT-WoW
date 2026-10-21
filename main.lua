@@ -1519,6 +1519,9 @@ Recent changes:
     M0.89   Oct 20, 2026
         - Fixed merged events mislabelling a hit as a miss, and damage/heals/misses of different
           kinds being merged into one number
+        - Fixed every hit being shown as a crit when the client reports the crit flag as a number
+        - Fixed "Max Simultaneous Numbers" leaving extra numbers on screen when the limit was
+          lowered
         - Event handling is contained: one failure no longer aborts the frame or leaks numbers
         - The "Hide Blizzard Combat Text" option works now - it used CVar names no client has
         - Fixed the rolling average, the spell-without-name case, and the preset Save/Delete/
