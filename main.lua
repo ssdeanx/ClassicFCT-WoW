@@ -1526,6 +1526,10 @@ Recent changes:
         - The "Hide Blizzard Combat Text" option works now - it used CVar names no client has
         - Fixed the rolling average, the spell-without-name case, and the preset Save/Delete/
           Rename buttons keeping a stale state
+        - Fixed the options panel drawing the off-target sliders over the text-position sliders,
+          and it now sizes itself to its content so the bottom of the panel is reachable
+        - "Max Simultaneous Numbers" now defaults to 20 instead of unlimited, so the example
+          does not fill the screen
         - GPL v3 license, third-party notices and a reproducible packaging script
     0.88    Oct 17, 2026
         - Supported clients aligned: Classic Era, TBC Anniversary, WotLK Titanforge, WoW Forever

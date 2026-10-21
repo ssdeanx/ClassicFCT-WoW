@@ -24,6 +24,7 @@ CFCT:RegisterLocale("koKR", {
     ["Nameplates In Front"] = "이름표 앞에 표시",
     ["Inherit From Nameplates"] = "이름표 속성 상속",
     ["Dim Off-Target Text"] = "비대상 텍스트 흐리게",
+    ["Off-Target Dimming"] = "비대상 흐리게",
     ["Abbreviate Large Numbers"] = "큰 숫자 축약",
     ["Add Thousands Separator"] = "천 단위 구분 기호 추가",
     ["Hide Below Absolute Threshold"] = "절대 임계값 미만 숨기기",

@@ -23,6 +23,7 @@ CFCT:RegisterLocale("deDE", {
     ["Nameplates In Front"] = "Namensplaketten im Vordergrund",
     ["Inherit From Nameplates"] = "Von Namensplaketten übernehmen",
     ["Dim Off-Target Text"] = "Nicht-Ziel-Text abdunkeln",
+    ["Off-Target Dimming"] = "Abdunklung für Nicht-Ziele",
     ["Abbreviate Large Numbers"] = "Große Zahlen abkürzen",
     ["Add Thousands Separator"] = "Tausendertrennzeichen einfügen",
     ["Hide Below Absolute Threshold"] = "Unter absoluter Schwelle ausblenden",

@@ -23,7 +23,7 @@ end
 CFCT:AddDefaultPreset("Mists of Pandaria", {
     animSpeed = 1,
     animDuration = 1.5,
-    maxDisplayed = 0,
+    maxDisplayed = 20,
     areaX = 0,
     areaY = 150,
     areaNX = 0,

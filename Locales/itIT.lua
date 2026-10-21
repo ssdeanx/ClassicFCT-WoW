@@ -24,6 +24,7 @@ CFCT:RegisterLocale("itIT", {
     ["Nameplates In Front"] = "Barre del nome in primo piano",
     ["Inherit From Nameplates"] = "Eredita dalle barre del nome",
     ["Dim Off-Target Text"] = "Attenua testo fuori bersaglio",
+    ["Off-Target Dimming"] = "Attenuazione fuori bersaglio",
     ["Abbreviate Large Numbers"] = "Abbrevia numeri grandi",
     ["Add Thousands Separator"] = "Aggiungi separatore delle migliaia",
     ["Hide Below Absolute Threshold"] = "Nascondi sotto soglia assoluta",

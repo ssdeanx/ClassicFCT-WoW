@@ -24,6 +24,7 @@ CFCT:RegisterLocale("esMX", {
     ["Nameplates In Front"] = "Placas de nombre al frente",
     ["Inherit From Nameplates"] = "Heredar de las placas de nombre",
     ["Dim Off-Target Text"] = "Atenuar texto fuera de objetivo",
+    ["Off-Target Dimming"] = "Atenuación fuera de objetivo",
     ["Abbreviate Large Numbers"] = "Abreviar números grandes",
     ["Add Thousands Separator"] = "Añadir separador de miles",
     ["Hide Below Absolute Threshold"] = "Ocultar bajo umbral absoluto",

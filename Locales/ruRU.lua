@@ -23,6 +23,7 @@ CFCT:RegisterLocale("ruRU", {
     ["Nameplates In Front"] = "Таблички на переднем плане",
     ["Inherit From Nameplates"] = "Наследовать от табличек",
     ["Dim Off-Target Text"] = "Затемнять текст вне цели",
+    ["Off-Target Dimming"] = "Затемнение чисел вне цели",
     ["Abbreviate Large Numbers"] = "Сокращать большие числа",
     ["Add Thousands Separator"] = "Добавлять разделитель тысяч",
     ["Hide Below Absolute Threshold"] = "Скрывать ниже абсолютного порога",

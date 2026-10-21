@@ -24,6 +24,7 @@ CFCT:RegisterLocale("zhTW", {
     ["Nameplates In Front"] = "名條置於前方",
     ["Inherit From Nameplates"] = "繼承名條屬性",
     ["Dim Off-Target Text"] = "非目標文字變暗",
+    ["Off-Target Dimming"] = "非目標變暗",
     ["Abbreviate Large Numbers"] = "縮寫大數字",
     ["Add Thousands Separator"] = "新增千位分隔符號",
     ["Hide Below Absolute Threshold"] = "隱藏低於絕對閾值",

@@ -24,6 +24,7 @@ CFCT:RegisterLocale("ptBR", {
     ["Nameplates In Front"] = "Placas de nome à frente",
     ["Inherit From Nameplates"] = "Herdar das placas de nome",
     ["Dim Off-Target Text"] = "Escurecer texto fora do alvo",
+    ["Off-Target Dimming"] = "Escurecimento fora do alvo",
     ["Abbreviate Large Numbers"] = "Abreviar números grandes",
     ["Add Thousands Separator"] = "Adicionar separador de milhares",
     ["Hide Below Absolute Threshold"] = "Ocultar abaixo do limite absoluto",

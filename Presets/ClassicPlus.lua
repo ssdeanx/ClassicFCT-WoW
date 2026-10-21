@@ -2,7 +2,7 @@ local _, CFCT = ...
 CFCT:AddDefaultPreset("Classic Plus", {
     animSpeed = 1,
     animDuration = 1.5,
-    maxDisplayed = 60,
+    maxDisplayed = 20,
     areaX = 0,
     areaY = 150,
     areaNX = 0,

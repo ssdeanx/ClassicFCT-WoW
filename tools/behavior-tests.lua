@@ -49,7 +49,8 @@ local function loadedEnv(options)
     CFCT.Presets = {}
     CFCT.AddDefaultPreset = function(self, name, tbl) return tbl end -- luacheck: ignore 212
 
-    -- The SavedVariables are plain globals in the client.
+    -- The SavedVariables are plain globals in the client. A test can seed
+    -- them to model an EXISTING profile.
     env.ClassicFCTConfig = env.ClassicFCTConfig or nil
     env.ClassicFCTVars = env.ClassicFCTVars or nil
     env.ClassicFCTTables = env.ClassicFCTTables or nil
@@ -57,6 +58,9 @@ local function loadedEnv(options)
     env.ClassicFCTCharConfig = env.ClassicFCTCharConfig or nil
     env.ClassicFCTCharVars = env.ClassicFCTCharVars or nil
     env.ClassicFCTCharTables = env.ClassicFCTCharTables or nil
+    if (type(options.savedVars) == "table") then
+        for name, value in pairs(options.savedVars) do env[name] = value end
+    end
 
     local ok, e = true, nil
 
@@ -618,6 +622,55 @@ do
             end
         end
     end
+end
+
+-- =============================================================================
+section("The maximum number of numbers on screen: default and migration")
+-- =============================================================================
+do
+    -- A fresh profile gets the new default: 20 numbers on screen. "Unlimited"
+    -- filled the screen and made the options panel unreadable.
+    local CFCT, _, ok = loadedEnv({ project = 2, interface = 11509 })
+    check("a fresh profile gets the new default of 20",
+        ok and CFCT.Config.maxDisplayed == 20,
+        ok and tostring(CFCT.Config.maxDisplayed) or "load failed")
+
+    -- An EXISTING profile that still holds one of the old defaults is moved
+    -- to the new one when the addon is upgraded.
+    for _, oldDefault in ipairs({ 0, 60 }) do
+        local CFCT2, env2, ok2 = loadedEnv({ project = 2, interface = 11509,
+            savedVars = {
+                ClassicFCTVars = { lastVersion = "0.88" },
+                ClassicFCTConfig = { maxDisplayed = oldDefault },
+            } })
+        check("an upgraded profile moves the old default " .. oldDefault .. " to 20",
+            ok2 and CFCT2.Config.maxDisplayed == 20,
+            ok2 and tostring(CFCT2.Config.maxDisplayed) or "load failed")
+        check("the migrated value is written back to the saved store",
+            ok2 and env2.ClassicFCTConfig and env2.ClassicFCTConfig.maxDisplayed == 20,
+            ok2 and tostring(env2.ClassicFCTConfig and env2.ClassicFCTConfig.maxDisplayed) or "no store")
+    end
+
+    -- A value the user chose themselves is NOT touched, on an upgrade or not.
+    local CFCT3, _, ok3 = loadedEnv({ project = 2, interface = 11509,
+        savedVars = {
+            ClassicFCTVars = { lastVersion = "0.88" },
+            ClassicFCTConfig = { maxDisplayed = 150 },
+        } })
+    check("a value the user chose is left alone on an upgrade",
+        ok3 and CFCT3.Config.maxDisplayed == 150,
+        ok3 and tostring(CFCT3.Config.maxDisplayed) or "load failed")
+
+    -- The migration is version-gated: the same profile on the SAME version
+    -- keeps its stored value.
+    local CFCT4, _, ok4 = loadedEnv({ project = 2, interface = 11509,
+        savedVars = {
+            ClassicFCTVars = { lastVersion = "M0.89" },
+            ClassicFCTConfig = { maxDisplayed = 0 },
+        } })
+    check("a profile on the current version keeps its stored value",
+        ok4 and CFCT4.Config.maxDisplayed == 0,
+        ok4 and tostring(CFCT4.Config.maxDisplayed) or "load failed")
 end
 
 -- =============================================================================

@@ -44,6 +44,17 @@ M0.89   Oct 20, 2026
     - The overlap resolver now skips frames where no text size changed, which removes the bulk of
       its cost when many numbers are on screen at once.
 
+    Options panel
+    - Fixed the off-target sliders being drawn on top of the text-position sliders, which made
+      those settings unreadable and impossible to check. The "Dim Off-Target Text" checkbox
+      stays where it was; the two sliders that control how much the off-target text is dimmed
+      are now in their own section at the bottom of the panel.
+    - The options panel now sizes itself to its content, so the bottom of the panel is
+      reachable instead of being clipped off.
+    - "Max Simultaneous Numbers" now defaults to 20 instead of unlimited. An unlimited number
+      of numbers filled the screen and made the options panel unreadable. The slider still
+      goes from 0 (unlimited) to 200, and a limit you set yourself is never changed.
+
     Compatibility
     - The four classic-family .toc files now declare their client's game type, so an
       unsupported classic client can no longer pick up the wrong one. The retail .toc is

@@ -19,6 +19,7 @@ CFCT:RegisterLocale("enUS", {
     ["Nameplates In Front"] = "Nameplates In Front",
     ["Inherit From Nameplates"] = "Inherit From Nameplates",
     ["Dim Off-Target Text"] = "Dim Off-Target Text",
+    ["Off-Target Dimming"] = "Off-Target Dimming",
     ["Abbreviate Large Numbers"] = "Abbreviate Large Numbers",
     ["Add Thousands Separator"] = "Add Thousands Separator",
     ["Hide Below Absolute Threshold"] = "Hide Below Absolute Threshold",

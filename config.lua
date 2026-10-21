@@ -1,4 +1,4 @@
-local _, CFCT = ...
+local addonName, CFCT = ...
 local L = CFCT.L
 local function noop() end
 -- The imports are split over two statements purely for line length; the name
@@ -293,6 +293,21 @@ function CFCT:ConfirmAction(title, OnAccept)
     StaticPopup_Show("CLASSICFCT_POPUPDIALOG")
 end
 
+-- The default for "Max Simultaneous Numbers" was "unlimited" (0) and is now a
+-- fixed 20, because an unlimited number of numbers fills the screen and makes
+-- every other setting unreadable. A profile that still holds one of the OLD
+-- defaults is moved to the new one. A value the user chose themselves is left
+-- alone: only the defaults are migrated, never a deliberate setting.
+local OLD_MAX_DISPLAYED_DEFAULTS = { [0] = true, [60] = true }
+local function MigrateMaxDisplayed(config)
+    if (type(config) ~= "table") then return false end
+    local value = config.maxDisplayed
+    if (type(value) ~= "number") then return false end
+    if (not OLD_MAX_DISPLAYED_DEFAULTS[value]) then return false end
+    config.maxDisplayed = DefaultConfig.maxDisplayed
+    return true
+end
+
 CFCT.ConfigPanels = {}
 CFCT.Presets = {}
 CFCT.Config = {
@@ -327,6 +342,26 @@ CFCT.Config = {
             ClassicFCTCharTables = ClassicFCTCharTables or {}
             UpdateTable(ClassicFCTCharTables, DefaultCharTables, DefaultCharTables)
             AttachTables(self, ClassicFCTCharTables, DefaultCharTables)
+        end
+
+        -- The version-gated migration. It runs when the stored version differs
+        -- from the running one, which is an upgrade, and only moves a value
+        -- that is still one of the old defaults.
+        local runningVersion = GetAddOnMetadata(addonName, "Version")
+        if (runningVersion and CFCT.lastVersion and (runningVersion ~= CFCT.lastVersion)) then
+            if MigrateMaxDisplayed(self) then
+                -- Write the migrated value back into the store it came from, so
+                -- it survives the next save.
+                if (not CFCT.characterSpecificConfig) then
+                    if (type(ClassicFCTConfig) == "table") then
+                        ClassicFCTConfig.maxDisplayed = DefaultConfig.maxDisplayed
+                    end
+                else
+                    if (type(ClassicFCTCharConfig) == "table") then
+                        ClassicFCTCharConfig.maxDisplayed = DefaultConfig.maxDisplayed
+                    end
+                end
+            end
         end
     end,
     OnSave = function(self)
@@ -1432,7 +1467,40 @@ local function CreateConfigPanel(name, parent, height)
     p.Container = Container
     sf:SetScrollChild(p)
     sf:SetAllPoints()
-    p:HookScript("OnShow", function(self) self:SetSize(sf:GetWidth(), height or sf:GetHeight()) end)
+    -- The scroll child's height must cover the content. The content is built
+    -- from anchored widgets whose heights come from the client's own templates
+    -- (a slider is 17px tall, plus a 14px value box below it and a label
+    -- above it), so the height the panel needs is MEASURED from the widgets
+    -- instead of being hard-coded. A fixed height either clips the bottom of
+    -- the panel - making those settings unreachable - or leaves empty space
+    -- below it.
+    --
+    -- The measurement only ever GROWS the height, and a measurement that
+    -- cannot be taken leaves the height alone, so a failed measurement can
+    -- never make the panel smaller than it was.
+    local function FitScrollHeight()
+        local top = p:GetTop()
+        if (not top) then return end
+        local lowest
+        for _, widget in ipairs(p.widgets or {}) do
+            if (type(widget.GetBottom) == "function") then
+                local bottom = widget:GetBottom()
+                if bottom and ((not lowest) or (bottom < lowest)) then lowest = bottom end
+            end
+        end
+        if (not lowest) then return end
+        -- 24px of slack, so the last widget is not flush against the edge.
+        local needed = (top - lowest) + 24
+        if needed > (height or 0) then
+            p:SetSize(p:GetWidth() or 0, needed)
+        end
+    end
+    p.FitScrollHeight = FitScrollHeight
+    p:HookScript("OnShow", function(self)
+        self:SetSize(sf:GetWidth(), height or sf:GetHeight())
+        FitScrollHeight()
+    end)
+    Container:HookScript("OnShow", FitScrollHeight)
     return p
 end
 
@@ -1618,19 +1686,18 @@ ConfigPanel:CreateCheckbox(L("Nameplates In Front"), L("Show text behind the nam
 local inheritNameplatesCheckbox = ConfigPanel:CreateCheckbox(L("Inherit From Nameplates"),
     L("Text inherits some atributes from nameplates, like visibility and scale"), overlapCheckbox, "TOPLEFT",
     "BOTTOMLEFT", 0, 0, DefaultConfig.inheritNameplates, "Config.inheritNameplates")
--- Off-target dimming. The sliders live below the checkbox in the free right-hand
--- column so they clear the "Screen Center Text" sliders on the left.
-local offTargetCheckbox = ConfigPanel:CreateCheckbox(L("Dim Off-Target Text"),
+-- Off-target dimming. The CHECKBOX stays here, in the Text Position Options
+-- section, but the two sliders that control the dimming live at the BOTTOM of
+-- the panel.
+--
+-- They used to sit directly under this checkbox, in the free right-hand
+-- column. That column is the same column the "Screen Center Text", "Nameplate
+-- Text" and "Anti-Overlap" sliders use for their second half, so the off-target
+-- sliders were drawn straight over those sliders' labels and value boxes: the
+-- panel could not be read, and the settings could not be checked.
+ConfigPanel:CreateCheckbox(L("Dim Off-Target Text"),
     L("Dim numbers for units other than your current target"), inheritNameplatesCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, 0,
     DefaultConfig.offTarget.enabled, "Config.offTarget.enabled")
-local offTargetSizeSlider = ConfigPanel:CreateSlider(L("Off-Target Size Scale"),
-    L("Size multiplier for off-target numbers"), offTargetCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, -20, 0.3, 1.0, 0.01,
-    DefaultConfig.offTarget.sizeScale, "Config.offTarget.sizeScale")
-offTargetSizeSlider:SetWidth(230)
-local offTargetAlphaSlider = ConfigPanel:CreateSlider(L("Off-Target Alpha"),
-    L("Opacity multiplier for off-target numbers"), offTargetSizeSlider, "TOPLEFT", "BOTTOMLEFT", 0, -28, 0.1, 1.0,
-    0.05, DefaultConfig.offTarget.alpha, "Config.offTarget.alpha")
-offTargetAlphaSlider:SetWidth(230)
 
 
 local areaSliderX = ConfigPanel:CreateSlider(L("Screen Center Text X Offset"), L("Horizontal offset of animation area"),
@@ -2067,6 +2134,28 @@ for k,v in pairs(SCHOOL_NAMES) do
             end
     end)
 end
+
+-- Off-target dimming, at the BOTTOM of the panel.
+--
+-- The "Dim Off-Target Text" checkbox stays up top with the other text-position
+-- settings (see the note where it is created), and the two sliders that
+-- control HOW MUCH the off-target text is dimmed live here, in a column of
+-- their own. That column has nothing else in it, so nothing can be drawn over
+-- these labels or their value boxes.
+--
+-- The sliders are 46 pixels apart: a slider's value box hangs below its track
+-- and its label sits above it, so a row is about 43 pixels tall. A tighter
+-- pitch put the value box of one slider over the label of the next.
+local offTargetHeader = ConfigPanel:CreateHeader(L("Off-Target Dimming"), "GameFontNormalLarge", colorTableDotFrame,
+    "TOPLEFT", "BOTTOMLEFT", 0, -24)
+local offTargetSizeSlider = ConfigPanel:CreateSlider(L("Off-Target Size Scale"),
+    L("Size multiplier for off-target numbers"), offTargetHeader, "TOPLEFT", "BOTTOMLEFT", 20, -20, 0.3, 1.0, 0.01,
+    DefaultConfig.offTarget.sizeScale, "Config.offTarget.sizeScale")
+offTargetSizeSlider:SetWidth(230)
+local offTargetAlphaSlider = ConfigPanel:CreateSlider(L("Off-Target Alpha"),
+    L("Opacity multiplier for off-target numbers"), offTargetSizeSlider, "TOPLEFT", "BOTTOMLEFT", 0, -46, 0.1, 1.0,
+    0.05, DefaultConfig.offTarget.alpha, "Config.offTarget.alpha")
+offTargetAlphaSlider:SetWidth(230)
 
 
 local CONFIG_LAYOUT = {

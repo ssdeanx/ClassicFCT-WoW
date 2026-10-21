@@ -24,6 +24,7 @@ CFCT:RegisterLocale("zhCN", {
     ["Nameplates In Front"] = "姓名板置于前方",
     ["Inherit From Nameplates"] = "继承姓名板属性",
     ["Dim Off-Target Text"] = "非目标文字变暗",
+    ["Off-Target Dimming"] = "非目标变暗",
     ["Abbreviate Large Numbers"] = "缩写大数字",
     ["Add Thousands Separator"] = "添加千位分隔符",
     ["Hide Below Absolute Threshold"] = "隐藏低于绝对阈值",

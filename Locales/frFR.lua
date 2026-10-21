@@ -24,6 +24,7 @@ CFCT:RegisterLocale("frFR", {
     ["Nameplates In Front"] = "Barres d'info au premier plan",
     ["Inherit From Nameplates"] = "Hériter des barres d'info",
     ["Dim Off-Target Text"] = "Assombrir le texte hors cible",
+    ["Off-Target Dimming"] = "Assombrissement hors cible",
     ["Abbreviate Large Numbers"] = "Abréger les grands nombres",
     ["Add Thousands Separator"] = "Ajouter un séparateur de milliers",
     ["Hide Below Absolute Threshold"] = "Masquer sous le seuil absolu",

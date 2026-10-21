@@ -149,6 +149,13 @@ Character-level: `ClassicFCTCharConfig`, `ClassicFCTCharVars`, `ClassicFCTCharTa
 - `tools/` is verification code, not addon code: it is excluded from release zips by the explicit manifest in `tools/package.sh`, and nothing in a `.toc` may reference it. `tools/` IS tracked in git, unlike `bench/`.
 - **The crit flag is a boolean, and Lua's truthiness is the trap.** The client delivers `critical` as `true`/`false` (Blizzard's own parser tests it with `if critical then` on every branch). Lua treats the NUMBER `0` as *true*, so a client that delivered `0/1` would make every hit read as a crit. `IsCritFlag()` in `main.lua` normalises the value to a real boolean, and it must be called only AFTER the `IsSecretValue` guard — comparing a secret value raises, and a secret value must never be inspected. Do not remove the normalisation and do not move it above the guard.
 
+## Options panel layout
+
+- **A slider row is about 43 pixels tall.** The slider frame is 17px (the client's `OptionsSliderTemplate`), its value box hangs 14px BELOW the track, and its label sits ~12px ABOVE it. Two sliders stacked with a pitch under 43px put the upper one's value box over the lower one's label. Use a pitch of 46px.
+- **The second column of the text-position sliders starts at x=286** (two 270px sliders plus a 16px gap). Anything placed at x=296 in that section lands on top of it. The off-target sliders used to sit there, which is why they are now in their own section at the bottom of the panel.
+- **The scroll child sizes itself to its content** (`FitScrollHeight` in `config.lua`). The widgets' heights come from the client's templates, so the required height is measured from the widgets rather than hard-coded. The measurement only grows the height and never shrinks it, so a failed measurement cannot make the panel smaller.
+- **A section header needs a locale key in all eleven tables.** The enUS table is the identity table; a key that exists only in enUS fails the release gate's locale checks.
+
 ## Verification (`tools/`)
 
 - `tools/release-gate.lua` is the release gate (178 checks). Run it from the repo root: `lua5.1 tools/release-gate.lua`. It asserts, rather than merely bounds, the warning budget and the file counts, so a warning or a dropped file cannot re-enter silently. It shells out to `luacheck` and to the behaviour suite; if either tool is missing the check FAILS instead of passing silently.
