@@ -1470,8 +1470,20 @@ local charSpecificCheckbox = ConfigPanel:CreateCheckbox(L("Character Specific Co
 end)
 local enabledCheckbox = ConfigPanel:CreateCheckbox(L("Enable ClassicFCT"), L("Enables/Disables the addon"), charSpecificCheckbox, "TOPLEFT", "BOTTOMLEFT", 0, -2, DefaultVars.enabled, "enabled")
 
+-- These two were ALWAYS hidden before: the probe used the un-suffixed CVar name
+-- ("floatingCombatTextCombatDamage"), which does not exist on any client, so
+-- GetCVarDefault returned nil and both boxes were hidden on every client. The
+-- CVar names are now resolved correctly, so the boxes are visible for the
+-- first time - and they had never been laid out for that.
+--
+-- They are chained to the RIGHT of the previous box's LABEL rather than to the
+-- previous box itself, with a fixed 150px offset. A fixed offset cannot work
+-- here: the label width depends on the language, and these labels are wider
+-- than the 150px the old chain allowed, so the boxes overlapped. Anchoring to
+-- the label's right edge follows the text instead, so the gap is correct in
+-- every language and the row needs no extra vertical space.
 local hideBlizzDamageCheckbox = ConfigPanel:CreateCheckbox(L("Hide Blizzard Damage"),
-    L("Enables/Disables the default Blizzard Floating Damage Text"), enabledCheckbox, "LEFT", "RIGHT", 150, 0,
+    L("Enables/Disables the default Blizzard Floating Damage Text"), enabledCheckbox.label, "LEFT", "RIGHT", 8, 0,
     DefaultVars.hideBlizz, "hideBlizz")
 hideBlizzDamageCheckbox:HookScript("OnClick", function(self)
     if IsRestrictedCombat then return end
@@ -1481,7 +1493,7 @@ end)
 if (CVarDamage == nil) then hideBlizzDamageCheckbox:Hide() end
 
 local hideBlizzHealingCheckbox = ConfigPanel:CreateCheckbox(L("Hide Blizzard Healing"),
-    L("Enables/Disables the default Blizzard Floating Healing Text"), hideBlizzDamageCheckbox, "LEFT", "RIGHT", 150, 0,
+    L("Enables/Disables the default Blizzard Floating Healing Text"), hideBlizzDamageCheckbox.label, "LEFT", "RIGHT", 8, 0,
     DefaultVars.hideBlizzHeals, "hideBlizzHeals")
 hideBlizzHealingCheckbox:HookScript("OnClick", function(self)
     if IsRestrictedCombat then return end

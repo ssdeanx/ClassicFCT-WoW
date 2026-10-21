@@ -1261,6 +1261,12 @@ end
 
 
 local CVAR_CHECK_INTERVAL = 5
+-- Live-example tunables. The options panel spawns preview numbers until the
+-- "Max Simultaneous Numbers" limit is reached, so the setting can be seen
+-- working instead of having to be taken on faith.
+local PREVIEW_DEFAULT_COUNT = 10
+local PREVIEW_SPAWN_PER_TICK = 20
+local PREVIEW_TICK_INTERVAL = 0.15
 local cvarTimer = 0
 -- Blizzard's own combat-text CVar names. On the supported clients only the
 -- "_v2" variants exist, so they are preferred and the un-suffixed names are
@@ -1425,8 +1431,28 @@ f:SetScript("OnUpdate", function(self, elapsed) -- luacheck: ignore 212
     -- only thing that releases expired frames, so skipping it would leak frames
     -- and repeat the error every frame.
     if CFCT._testMode and (now > testModeTimer) and not InCombatLockdown() then
-        RunProtected("OnUpdate: test numbers", CFCT.Test, CFCT, 2)
-        testModeTimer = now + CFCT.Config.animDuration / 2
+        -- The live example demonstrates the "Max Simultaneous Numbers" setting:
+        -- it fills up to the configured maximum, so moving the slider visibly
+        -- changes how many numbers are on screen. With the maximum at 0
+        -- (unlimited) a small default is used, because "unlimited" cannot be
+        -- shown literally. The spawn count is the shortfall, capped per tick so
+        -- the frame cost stays bounded, and the tick is frequent enough that
+        -- the example converges on the target within a second or two.
+        local previewTarget = CFCT.Config.maxDisplayed
+        if (not previewTarget) or (previewTarget <= 0) then previewTarget = PREVIEW_DEFAULT_COUNT end
+        local toSpawn = previewTarget - #anim
+        if (toSpawn < 0) then toSpawn = 0 end
+        -- Spawn fast enough that the example reaches any target before the
+        -- first numbers start expiring. A fixed per-tick cap could not: at a
+        -- target of 30 the example topped out at 23, because the fill rate was
+        -- slower than the expiry rate. The cap scales with the shortfall, so
+        -- the example converges whatever the target is.
+        local perTick = math.max(PREVIEW_SPAWN_PER_TICK, math.ceil(previewTarget / 2))
+        if (toSpawn > perTick) then toSpawn = perTick end
+        if (toSpawn > 0) then
+            RunProtected("OnUpdate: test numbers", CFCT.Test, CFCT, toSpawn)
+        end
+        testModeTimer = now + PREVIEW_TICK_INTERVAL
     end
     if (now > rollingAverageTimer) then
         RunProtected("OnUpdate: rolling average", CalculateRollingAverage)
