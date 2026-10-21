@@ -12,7 +12,7 @@ old = '''    if not ok then
         if not secretProbeFailed then
             secretProbeFailed = true
             if (type(CFCT.Log) == "function") then
-                CFCT:Log("ClassicFCT: the secret-value probe failed, so all combat text is suppressed. This is a client problem, not a configuration one.")
+                CFCT:Log("the secret-value probe failed, so all combat text is suppressed. This is a client problem, not a configuration one.")
             end
         end
         return true

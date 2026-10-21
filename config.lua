@@ -234,6 +234,11 @@ local function AttachTables(dest, source, template)
 end
 
 CFCT._log = {}
+-- The coloured addon prefix is added HERE. A caller must pass the bare
+-- message: repeating "ClassicFCT: " in the message text prints the prefix
+-- twice ("ClassicFCT: ClassicFCT: ..."), which is what every diagnostic in
+-- main.lua used to do. tools/behavior-tests.lua asserts the prefix is not
+-- repeated (see the secret-value probe checks).
 function CFCT:Log(msg)
     msg = "|cffffff00ClassicFCT: |r|cffffff80"..(msg or "").."|r"
     print(msg)

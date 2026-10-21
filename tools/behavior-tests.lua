@@ -441,6 +441,19 @@ do
         end
         check("an absent probe is reported as the cause", reported,
             table.concat(CFCT._log, " | "))
+        -- CFCT:Log already prepends the coloured "ClassicFCT: " prefix, so a
+        -- caller that repeats it in the message text prints it twice
+        -- ("ClassicFCT: ClassicFCT: ..."), which is what every main.lua
+        -- diagnostic used to do. Compare against the real CFCT:Log output,
+        -- which is how the entry is stored here: the prefix is not at
+        -- position 1, it is behind the colour codes, so count it.
+        local doubled = false
+        for _, m in ipairs(CFCT._log) do
+            local _, count = tostring(m):gsub("ClassicFCT: ", "")
+            if (count > 1) then doubled = true end
+        end
+        check("the log does not repeat the addon prefix", not doubled,
+            table.concat(CFCT._log, " | "))
     end
 end
 
@@ -461,6 +474,13 @@ do
             if tostring(m):find("probe failed", 1, true) then reported = true end
         end
         check("a raising probe is reported as the cause", reported,
+            table.concat(CFCT._log, " | "))
+        local doubled = false
+        for _, m in ipairs(CFCT._log) do
+            local _, count = tostring(m):gsub("ClassicFCT: ", "")
+            if (count > 1) then doubled = true end
+        end
+        check("the log does not repeat the addon prefix", not doubled,
             table.concat(CFCT._log, " | "))
     end
 end

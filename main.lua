@@ -37,7 +37,7 @@ local function IsSecretValue(v)
         if not secretProbeFailed then
             secretProbeFailed = true
             if (type(CFCT.Log) == "function") then
-                CFCT:Log("ClassicFCT: the secret-value probe is unavailable, so all combat text is suppressed. This is a client problem, not a configuration one.")
+                CFCT:Log("the secret-value probe is unavailable, so all combat text is suppressed. This is a client problem, not a configuration one.")
             end
         end
         return true
@@ -56,7 +56,7 @@ local function IsSecretValue(v)
         if not secretProbeFailed then
             secretProbeFailed = true
             if (type(CFCT.Log) == "function") then
-                CFCT:Log("ClassicFCT: the secret-value probe failed, so all combat text is suppressed. This is a client problem, not a configuration one.")
+                CFCT:Log("the secret-value probe failed, so all combat text is suppressed. This is a client problem, not a configuration one.")
             end
         end
         return true
@@ -882,7 +882,7 @@ local function SpellIconText(spell) -- spellid or spellname
             if (iconNegativeLogCount < ICON_NEGATIVE_LOG_LIMIT) then
                 iconNegativeLogCount = iconNegativeLogCount + 1
                 if (type(CFCT.Log) == "function") then
-                    CFCT:Log("ClassicFCT: "..L("no icon could be resolved for '%s' - the number is shown without an icon.", tostring(spell)))
+                    CFCT:Log(L("no icon could be resolved for '%s' - the number is shown without an icon.", tostring(spell)))
                 end
             end
         end
@@ -1045,7 +1045,7 @@ local function DispatchText(guid, event, text, amount, spellid, spellicon, perio
         if not offTargetNoTargetNoticeShown then
             offTargetNoTargetNoticeShown = true
             if (type(CFCT.Log) == "function") then
-                CFCT:Log("ClassicFCT: \"Dim Off-Target Text\" is enabled but there is no target, so nothing is dimmed.")
+                CFCT:Log("\"Dim Off-Target Text\" is enabled but there is no target, so nothing is dimmed.")
             end
         end
     end
@@ -1189,7 +1189,7 @@ local function CacheEvent(guid, event, amount, text, spellid, spellicon, periodi
         if not mergeIntervalModeReported then
             mergeIntervalModeReported = true
             if (type(CFCT.Log) == "function") then
-                CFCT:Log("ClassicFCT: "..L("unknown merge interval mode '%s' - '%s' is used instead.",
+                CFCT:Log(L("unknown merge interval mode '%s' - '%s' is used instead.",
                     tostring(fctConfig.mergeEventsIntervalMode), L("First Event")))
             end
         end
@@ -1695,7 +1695,7 @@ local function ResolveCombatLogApi()
         if not cleuApiReported then
             cleuApiReported = true
             if (type(CFCT.Log) == "function") then
-                CFCT:Log("ClassicFCT: no combat-log API is available on this client, so no combat text can be shown.")
+                CFCT:Log("no combat-log API is available on this client, so no combat text can be shown.")
             end
         end
         return nil
@@ -1791,7 +1791,7 @@ local function ReportMissingSpellId()
     if spellIdMissingLogged then return end
     spellIdMissingLogged = true
     if (type(CFCT.Log) == "function") then
-        CFCT:Log("ClassicFCT: a spell event arrived without a usable spell id - it is shown as a spell without an icon instead of being treated as an auto attack.")
+        CFCT:Log("a spell event arrived without a usable spell id - it is shown as a spell without an icon instead of being treated as an auto attack.")
     end
 end
 
